@@ -10,8 +10,9 @@ class MainWindow(QWidget):
     K=0.1 # 回弹系数
     R=100 # 回弹半径
     TITLE = "MyToolkitMainWindow"
-    def __init__(self):
+    def __init__(self, app:QApplication):
         super().__init__()
+        self.app=app
 
         # 停靠在屏幕右上角
         screen_geometry = QApplication.primaryScreen().geometry()
@@ -26,6 +27,7 @@ class MainWindow(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
         self.bgwidget=BackgroundWidget(self)
+        self.trayWidget=TrayIconWidget(self)
 
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
@@ -41,12 +43,14 @@ class MainWindow(QWidget):
         self.messages = queue.Queue()
         self.timer = QTimer(self)
         self.timer.singleShot(1000, self.checkMessage)
+        self.timer.singleShot(1000, self.checkApp)
         self.drag_position = None # 鼠标拖动位置相对窗口左上角的偏移
         self.hidden=False # 是否收缩进屏幕右侧
         self._keyboard_moving_timer = None # 非鼠标导致窗口隐藏状态发生更改的动画
 
     def addWidget(self, widget):
         self.layout.addWidget(widget)
+        widget.show()
         self.widgets.append(widget)
         return
 
@@ -173,6 +177,16 @@ class MainWindow(QWidget):
             self.timer.singleShot(500, self.checkMessage)
         return
     
+    def checkApp(self):
+        if self.app is None:
+            print("App not found, exiting.")
+            raise SystemExit
+        handle = self.windowHandle()
+        if handle is None:
+            print("Window handle not found, exiting.")
+            raise SystemExit
+        self.timer.singleShot(2000, self.checkApp)
+    
     def closeEvent(self, a0):
         raise SystemExit
 
@@ -181,7 +195,7 @@ class BackgroundWidget(QLabel):
     DEFAULT_COLOR = "lightblue"
     IMAGE_PATH = None  # "path/to/your/image.png"
     BORDER_RADIUS = 50
-    def __init__(self, parent):
+    def __init__(self, parent:QWidget):
         super().__init__(parent)
         self.main=parent
         self.setGeometry(0, 0, self.main.width(), self.main.height())
@@ -206,13 +220,58 @@ class BackgroundWidget(QLabel):
             self.setScaledContents(True)
 
         self.container.show()
+
+class TrayIconWidget:
+    ICON_PATH = "icon.png"
+    def __init__(self, manager:MainWindow=None):
+        self.manager=manager
+        self.app = QApplication(sys.argv)
+        self.tray_icon = QSystemTrayIcon(QIcon(self.ICON_PATH), self.app)
+        self.tray_icon.setToolTip("MyToolkit")
+
+        menu = QMenu()
+
+        self.widget0_action = QAction("Joat917's Toolkit", self.app)
+        self.widget0_action.triggered.connect(lambda:print("Hello there!"))
+        menu.addAction(self.widget0_action)
+        
+        # self.widget1_action = QAction("Useless Button", self.app)
+        # self.widget1_action.triggered.connect(self.action)
+        # menu.addAction(self.widget1_action)
+
+        self.hideshow_action = QAction("Hide/Show(F24)", self.app)
+        self.hideshow_callback=lambda:self.manager.refreshHiddenState(not self.manager.hidden)
+        self.hideshow_action.triggered.connect(self.hideshow_callback)
+        menu.addAction(self.hideshow_action)
+        
+        self.exit_action = QAction("Exit(F18)", self.app)
+        self.exit_action.triggered.connect(self.exit)
+        menu.addAction(self.exit_action)
+
+        self.tray_icon.setContextMenu(menu)
+        self.tray_icon.activated.connect(self.on_tray_icon_activated)
+        self.tray_icon.show()
+    
+    def action(self):
+        if self.manager is not None:
+            self.manager.action()
+
+    def on_tray_icon_activated(self, reason):
+        # 左键单击托盘图标时切换隐藏状态
+        if reason == QSystemTrayIcon.Trigger:
+            self.hideshow_callback()
+
+    def exit(self):
+        self.app.quit()
+        self.manager.app.closeAllWindows()
+        self.manager.app.quit()
         
 if __name__ == "__main__":
     from start_check import check_started
     BackgroundWidget.IMAGE_PATH = os.path.join(os.path.dirname(__file__), "test_image.png")
     app = QApplication(sys.argv)
     check_started()
-    window = MainWindow()
+    window = MainWindow(app=app)
     window.show()
     sys.exit(app.exec_())
 
