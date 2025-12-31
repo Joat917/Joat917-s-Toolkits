@@ -10,8 +10,8 @@ class SwitchButton(QLabel):
         self.setCursor(Qt.PointingHandCursor)
         self.state = False  # 初始状态为关闭
         self.slider_position = self.PADDING  # 滑块初始位置
-        self.animation_timer = QTimer()
-        self.animation_timer.timeout.connect(self.animate_slider)
+        self.animation_timer = None
+        self.animation_repeat_count = 0
         self.target_position = self.PADDING  # 目标位置
         self.onchange = onchange
         self.onturnon = onturnon
@@ -26,22 +26,31 @@ class SwitchButton(QLabel):
         else:
             self.onturnoff()
             self.target_position = self.PADDING  # 关闭状态滑块位置
+        if self.animation_timer is not None:
+            self.animation_timer.stop()
+        self.animation_timer = QTimer()
+        self.animation_timer.timeout.connect(self.animate_slider)
         self.animation_timer.start(10)  # 启动动画定时器
+        self.animation_repeat_count = 0
 
     def animate_slider(self):
-        if self.slider_position < self.target_position:
+        if self.slider_position < self.target_position and self.animation_repeat_count < 100:
             self.slider_position += max(0.1 * (self.target_position - self.slider_position), 1)
             self.slider_position = round(self.slider_position)
             if self.slider_position > self.target_position:
                 self.slider_position = self.target_position
-        elif self.slider_position > self.target_position:
+            self.animation_repeat_count += 1
+        elif self.slider_position > self.target_position and self.animation_repeat_count < 100:
             self.slider_position += min(0.1 * (self.target_position - self.slider_position), -1)
             self.slider_position = round(self.slider_position)
             if self.slider_position < self.target_position:
                 self.slider_position = self.target_position
+            self.animation_repeat_count += 1
         else:
             self.slider_position = self.target_position
             self.animation_timer.stop()  # 到达目标位置，停止动画
+            self.animation_timer = None
+            self.animation_repeat_count = 0
         self.update()  # 触发重绘
 
     def paintEvent(self, event):

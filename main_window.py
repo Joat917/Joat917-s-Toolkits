@@ -108,7 +108,6 @@ class MainWindow(QWidget):
         def update_position():
             if self.drag_position is not None:
                 self.animation_timer.stop()
-                self._set_hidden_position()
                 return
             current_pos = self.pos()
             target_pos = self.position_1 if not self.hidden else self.position_2
@@ -117,7 +116,7 @@ class MainWindow(QWidget):
             if distance < 1:
                 self.move(target_pos)
                 self.animation_timer.stop()
-                self._set_hidden_position()
+                self._settle_hidden_position()
                 return
             step = QPointF(delta.x() * self.K, delta.y() * self.K)
             new_pos = current_pos + step.toPoint()
@@ -128,7 +127,11 @@ class MainWindow(QWidget):
 
         event.accept()
 
-    def _set_hidden_position(self):
+    def _settle_hidden_position(self):
+        self.drag_position = None
+        if self._keyboard_moving_timer is not None:
+            self._keyboard_moving_timer.stop()
+        self._keyboard_moving_timer = None
         if self.hidden:
             self.move(self.position_2)
         else:
@@ -157,7 +160,7 @@ class MainWindow(QWidget):
         if self._keyboard_moving_timer is not None:
             self._keyboard_moving_timer.stop()
             self._keyboard_moving_timer = None
-            self._set_hidden_position()
+            self._settle_hidden_position()
         self.hidden = hidden
         self._keyboard_moving_timer = QTimer(self)
         self._keyboard_moving_timer.timeout.connect(self._keyboard_moving_updater)
@@ -192,6 +195,10 @@ class MainWindow(QWidget):
     
     def closeEvent(self, a0):
         raise SystemExit
+    
+    @property
+    def isMoving(self):
+        return self.drag_position is not None or (self._keyboard_moving_timer is not None)
 
 
 class BackgroundWidget(QLabel):
