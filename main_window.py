@@ -71,6 +71,9 @@ class MainWindow(QWidget):
         # 如果按下F18，直接退出
         elif a0.key() == Qt.Key_F18:
             raise SystemExit
+        
+    def contextMenuEvent(self, a0):
+        self.trayWidget.tray_icon.contextMenu().exec_(a0.globalPos())
 
     # 可以拖动，但是总是试图回到停靠位置
     def mousePressEvent(self, event):
