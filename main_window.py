@@ -301,7 +301,7 @@ class TrayIconWidget:
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
 
-        self.add_action("Joat917's Toolkit", lambda:print("Hello there!"))
+        self.add_action("Joat917's Toolkit", lambda:FadingPopup("Hello there!").fadeIn())
         self.add_action("Hide/Show(F24)", lambda:self.manager.refreshHiddenState(not self.manager.hidden))
         self.add_action("Exit(F18)", self.exit)
 

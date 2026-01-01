@@ -13,26 +13,6 @@ if __name__ == "__main__":
     MainWindow.TITLE = "Joat917's Toolkit"
     window = MainWindow(app=app)
 
-    stopwatch = []
-    window.addWidget(WidgetBox(
-        parent=window, 
-        title="Stopwatch", 
-        widgets=[SwitchButton(
-            onturnon=lambda: stopwatch.append(StopWatchMainWindow(window)), 
-            onturnoff=lambda: (stopwatch.pop().close() if stopwatch else None)
-        )]
-    ))
-
-    keyboard_manager = []
-    window.addWidget(WidgetBox(
-        parent=window, 
-        title="Keyboard Displayer", 
-        widgets=[SwitchButton(
-            onturnon=lambda: keyboard_manager.append(KeyDisplayerManager(window)), 
-            onturnoff=lambda: (keyboard_manager.pop().close() if keyboard_manager else None)
-        )]
-    ))
-
     drop_runner = DropRunner(window)
     window.addWidget(drop_runner)
 
@@ -69,6 +49,26 @@ if __name__ == "__main__":
             text="Press Win+Ctrl+Alt+V to Paste as Plain Text", 
         )
         ]
+    ))
+
+    keyboard_manager = []
+    window.addWidget(WidgetBox(
+        parent=window, 
+        title="Keyboard Displayer", 
+        widgets=[SwitchButton(
+            onturnon=lambda: keyboard_manager.append(KeyDisplayerManager(window)), 
+            onturnoff=lambda: (keyboard_manager.pop().close() if keyboard_manager else None)
+        )]
+    ))
+
+    stopwatch = []
+    window.addWidget(WidgetBox(
+        parent=window, 
+        title="Stopwatch", 
+        widgets=[SwitchButton(
+            onturnon=lambda: stopwatch.append(StopWatchMainWindow(window)), 
+            onturnoff=lambda: (stopwatch.pop().close() if stopwatch else None)
+        )]
     ))
 
     window.show()

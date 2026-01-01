@@ -2,9 +2,10 @@
 import code
 import sys
 import os
-from unitex_jsrunner import convert as unitex
+import base64
 
 class InlineCalculator(code.InteractiveConsole):
+    NAMEX = "namex" # 试图用UniTex渲染'namex'字符串时使用的结果
     def __init__(self):
         super().__init__()
         sys.ps1 = ">>> "
@@ -34,6 +35,21 @@ class InlineCalculator(code.InteractiveConsole):
         ]:
             self.push(command)
 
+        try:
+            with open(os.path.join(os.path.dirname(__file__), 'namex_data.a85.txt'), 'r', encoding='utf-8') as f:
+                new_namex = base64.a85decode(f.read().strip().encode()).decode()
+                if new_namex:
+                    self.NAMEX = new_namex
+            # for arg in sys.argv[1:]:
+            #     if arg.startswith('--namex='):
+            #         new_namex = base64.a85decode(arg[len('--namex='):].strip().encode()).decode()
+            #         if new_namex:
+            #             self.NAMEX = new_namex
+        except Exception:
+            # import traceback
+            # traceback.print_exc()
+            pass
+
     def interact(self):
         print("Inline calculator: Enter expression to evaluate.")
         print("Try 'help()' for help, EOF to exit.")
@@ -54,9 +70,15 @@ class InlineCalculator(code.InteractiveConsole):
                     continue
                 if more==0 and line.startswith('$'):
                     if line.startswith('$$'):
-                        self.push(f'copy(_:=unitex({line[2:]!r}));_')
+                        expr=line[2:]
+                        if expr=='namex':
+                            expr=self.NAMEX
+                        self.push(f'copy(_:=unitex({expr!r}));_')
                     else:
-                        self.push(f'unitex({line[1:]!r})')
+                        expr=line[1:]
+                        if expr=='namex':
+                            expr=self.NAMEX
+                        self.push(f'unitex({expr!r})')
                     continue
                 if more==0 and line.startswith('?'):
                     expr = line[1:].strip()
