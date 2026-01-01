@@ -9,7 +9,7 @@ class MainWindow(QWidget):
     PADDING = 20
     K=0.1 # 回弹系数
     R=100 # 回弹半径
-    TITLE = "MyToolkitMainWindow"
+    TITLE = "Joat917's Toolkit"
     def __init__(self, app:QApplication):
         super().__init__()
         self.app=app
@@ -284,7 +284,7 @@ class TrayIconWidget:
         self.manager=manager
         self.app = QApplication(sys.argv)
         self.tray_icon = QSystemTrayIcon(QIcon(self.ICON_PATH), self.app)
-        self.tray_icon.setToolTip("MyToolkit")
+        self.tray_icon.setToolTip("Joat917's Toolkit")
 
         menu = self.menu = QMenu()
 

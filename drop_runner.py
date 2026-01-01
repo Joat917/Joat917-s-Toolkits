@@ -1,6 +1,7 @@
 from base_import import *
 from main_window import WidgetBox, MainWindow
 from switch_widgets import SwitchButton
+from popup_window import ConfirmationPopup
 
 
 class DropRunner(WidgetBox):
@@ -11,6 +12,7 @@ class DropRunner(WidgetBox):
         super().__init__(master, title=self.TITLE)
 
         self.master = master
+
         self.label = QLabel("Drop Pythons Here", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFont(QFont(FONT_NAME, 10))
@@ -28,6 +30,8 @@ class DropRunner(WidgetBox):
         self.python_path = os.path.join(self.PYTHON_DIR, 'python.exe')
         self.pythonw_path = os.path.join(self.PYTHON_DIR, 'pythonw.exe')
         self.debug_mode = False
+
+        self.master.trayWidget.add_action("Restart", self.restartEverything)
 
     def setDebugMode(self, debug: bool):
         self.debug_mode = debug
@@ -100,6 +104,19 @@ class DropRunner(WidgetBox):
         except Exception:
             import traceback
             traceback.print_exc()
+
+    def restartEverything(self, *, confirm=True):
+        if confirm:
+            popup = ConfirmationPopup("Restart?")
+            popup.show_popup()
+            while popup.user_response is None:
+                QApplication.processEvents()
+                time.sleep(0.05)
+            if not popup.user_response:
+                return
+        os.chdir(os.path.dirname(__file__))
+        subprocess.Popen(sys.orig_argv[:]+['--forceKillAllExistingInstances'], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        # this process will be killed by the newly started process
         
 
 if __name__ == "__main__":

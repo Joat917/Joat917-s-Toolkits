@@ -20,6 +20,14 @@ def check_started():
         with open(pid_file, "w") as f:
             f.write(str(os.getpid()))
         return True
+    if '--forceKillAllExistingInstances' in sys.argv:
+        try:
+            os.kill(existing_pid, 9)
+        except Exception:
+            pass
+        with open(pid_file, "w") as f:
+            f.write(str(os.getpid()))
+        return True
     else:
         def on_user_response(response):
             if response:
@@ -41,6 +49,7 @@ def check_started():
         # wait for user response
         while popup.user_response is None:
             QApplication.processEvents()
+            time.sleep(0.05)
         return False
     
 if __name__ == "__main__":

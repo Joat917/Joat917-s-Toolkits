@@ -15,13 +15,13 @@ class KeyDisplay(QWidget):
     _font = QFont(FONT_NAME, 10)
     _fontMetrics = QFontMetrics(_font)
 
-    def __init__(self, pos, color=main_color, text='Sample Text', manager=None):
+    def __init__(self, pos, text='Sample Text', manager=None):
         super().__init__()
         self.setFont(KeyDisplay._font)
 
         width, height=self.getSize(text)
         x,y=pos
-        self.color = color
+        self.color = self.main_color
         self.text = text
         self.manager=manager
         self.radius=min(self.borderRadius, width//2)
@@ -143,8 +143,8 @@ class KeyDisplayerManager(QObject):
         KeyDisplay.width_tot=screen_geometry.width()-KeyDisplay.base_x
         KeyDisplay.height_tot=screen_geometry.height()-KeyDisplay.base_y
 
-        self.master.hotkey_callbacks['KEYBOARD_DISPLAYER_PRESS'] = self.callbackPress
-        self.master.hotkey_callbacks['KEYBOARD_DISPLAYER_RELEASE'] = self.callbackRelease
+        self.master.globalKeyboardListener.press_callbacks.append(self.callbackPress)
+        self.master.globalKeyboardListener.release_callbacks.append(self.callbackRelease)
         self.master.trayWidget.add_action("Key&Mouse: Release All", self.releaseAll)
         self.master.trayWidget.add_action("Key&Mouse: Remove All", self.removeAll)
 
@@ -219,8 +219,8 @@ class KeyDisplayerManager(QObject):
         self.boxes.clear()
         self.texts.clear()
 
-        self.master.hotkey_callbacks.pop('KEYBOARD_DISPLAYER_PRESS')
-        self.master.hotkey_callbacks.pop('KEYBOARD_DISPLAYER_RELEASE')
+        self.master.globalKeyboardListener.press_callbacks.remove(self.callbackPress)
+        self.master.globalKeyboardListener.release_callbacks.remove(self.callbackRelease)
         self.master.trayWidget.remove_action("Key&Mouse: Release All")
         self.master.trayWidget.remove_action("Key&Mouse: Remove All")
         self.master = None
