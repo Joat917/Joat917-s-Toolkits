@@ -42,6 +42,7 @@ class KeyDisplay(QWidget):
         self.opacity_effect.setOpacity(self.opacity)
         
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
+        QTimer.singleShot(200, self.checkExistence)
 
         self.animation_level=0
         self.animation=None
@@ -91,6 +92,12 @@ class KeyDisplay(QWidget):
             self.manager._kill(self)
             self.manager = None
         super().close()
+
+    def checkExistence(self):
+        if self.manager is None or self.manager.master is None:
+            self.close()
+            return
+        QTimer.singleShot(200, self.checkExistence)
 
     @classmethod
     def distribute_places(cls, boxes:list[tuple[int,int]]):

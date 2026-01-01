@@ -278,6 +278,15 @@ class WidgetBox(QWidget):
 
         painter.end()
 
+class PlainText(QLabel):
+    def __init__(self, text:str="", parent:QWidget=None):
+        super().__init__(parent)
+        self.setText(text)
+        self.setFont(QFont(FONT_NAME, 10))
+        self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.setWordWrap(True)
+    
+
 class TrayIconWidget:
     ICON_PATH = "img/icon.png"
     def __init__(self, manager:MainWindow=None):
@@ -319,7 +328,7 @@ class TrayIconWidget:
     def on_tray_icon_activated(self, reason):
         # 左键单击托盘图标时切换隐藏状态
         if reason == QSystemTrayIcon.Trigger:
-            self.hideshow_callback()
+            self.manager.refreshHiddenState(not self.manager.hidden)
 
     def exit(self):
         self.app.quit()

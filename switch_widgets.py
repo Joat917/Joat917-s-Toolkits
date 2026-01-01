@@ -4,6 +4,7 @@ class SwitchButton(QLabel):
     "长圆形开关，背景灰色或蓝色。包含一个白色圆形滑块可以左右滑动切换状态。"
     SIZE=60
     PADDING=5
+    ALPHA=200 # 背景透明度
     def __init__(self, parent=None, onchange=lambda state:None, onturnon=lambda:None, onturnoff=lambda:None):
         super().__init__(parent)
         self.setFixedSize(2*self.SIZE, self.SIZE)
@@ -16,6 +17,8 @@ class SwitchButton(QLabel):
         self.onchange = onchange
         self.onturnon = onturnon
         self.onturnoff = onturnoff
+
+        # self._old_under_mouse = False
 
     def mousePressEvent(self, event):
         self.state = not self.state  # 切换状态
@@ -53,25 +56,36 @@ class SwitchButton(QLabel):
             self.animation_repeat_count = 0
         self.update()  # 触发重绘
 
+    @property
+    def alpha(self):
+        # if self.underMouse():
+        #     return 255
+        return self.ALPHA
+    
+    # def mouseMoveEvent(self, ev):
+    #     if self._old_under_mouse != self.underMouse():
+    #         self._old_under_mouse = self.underMouse()
+    #         self.update()
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
         # 绘制背景
         if self.state:
-            painter.setBrush(QColor(0, 122, 204))  # 打开状态蓝色
+            painter.setBrush(QColor(0, 122, 204, self.alpha))  # 打开状态蓝色
         else:
-            painter.setBrush(QColor(200, 200, 200))  # 关闭状态灰色
+            painter.setBrush(QColor(200, 200, 200, self.alpha))  # 关闭状态灰色
         painter.setPen(Qt.NoPen)
         painter.drawRoundedRect(0, 0, self.width(), self.height(), self.SIZE//2, self.SIZE//2)
 
         # 绘制滑块
-        painter.setBrush(QColor(255, 255, 255))  # 白色滑块
+        painter.setBrush(QColor(255, 255, 255, self.alpha))  # 白色滑块
         painter.drawEllipse(self.slider_position, self.PADDING, self.SIZE-2*self.PADDING, self.SIZE-2*self.PADDING)
         painter.end()
 
 
-class ColoredButton(QPushButton):
+class PushButton(QPushButton):
     "带背景色的圆角按钮"
     def __init__(
             self, text="", parent=None, 
@@ -80,6 +94,7 @@ class ColoredButton(QPushButton):
             hover_color=None, 
             pressed_color=None, 
             text_color=QColor(255, 255, 255), 
+            alpha = 150, 
             onclick=lambda:None):
         super().__init__(text, parent)
         self.setFixedSize(width, height)
@@ -92,6 +107,7 @@ class ColoredButton(QPushButton):
         if pressed_color is None:
             pressed_color = bg_color.darker(110)
         self.pressed_color = pressed_color
+        self.bg_color.setAlpha(alpha)
         self.onclick = onclick
         self.border_radius = height//2
 
@@ -99,7 +115,7 @@ class ColoredButton(QPushButton):
         self.setCursor(Qt.PointingHandCursor)
         self.setStyleSheet(f"""
             QPushButton {{
-                color: rgb({self.text_color.red()}, {self.text_color.green()}, {self.text_color.blue()});
+                color: rgba({self.text_color.red()}, {self.text_color.green()}, {self.text_color.blue()}, {self.text_color.alpha()});
                 border: none;
                 border-radius: {self.border_radius}px;
                 font-size: {self.fontSize}pt;
@@ -138,9 +154,11 @@ class ColoredButton(QPushButton):
         r_diff = self.target_color.red() - self.current_color.red()
         g_diff = self.target_color.green() - self.current_color.green()
         b_diff = self.target_color.blue() - self.current_color.blue()
+        a_diff = self.target_color.alpha() - self.current_color.alpha()
         d_red = round(r_diff/self.color_decay_constant)
         d_green = round(g_diff/self.color_decay_constant)
         d_blue = round(b_diff/self.color_decay_constant)
+        d_alpha = round(a_diff/self.color_decay_constant)
 
         if d_red == 0 and d_green == 0 and d_blue == 0:
             self.current_color = self.target_color
@@ -150,7 +168,8 @@ class ColoredButton(QPushButton):
             new_r = self.current_color.red() + d_red
             new_g = self.current_color.green() + d_green
             new_b = self.current_color.blue() + d_blue
-            self.current_color = QColor(new_r, new_g, new_b)
+            new_a = self.current_color.alpha() + d_alpha
+            self.current_color = QColor(new_r, new_g, new_b, new_a)
 
         self.update()  # 触发重绘
 
@@ -195,18 +214,18 @@ if __name__ == "__main__":
         window,
         title="Colored Buttons",
         widgets=[
-        ColoredButton(
+        PushButton(
             text="Colored Button #1",
             width=240,
             bg_color=QColor(100, 200, 100), 
             onclick=lambda: print("Colored Button #1 Clicked")
-        ), ColoredButton(
+        ), PushButton(
             text="Colored Button #2",
             width=240,
             bg_color=QColor(200, 100, 150),
             onclick=lambda: print("Colored Button #2 Clicked")
         ), 
-        ColoredButton(
+        PushButton(
             text="Colored Button #3",
             width=240,
             bg_color=QColor(150, 100, 200), 

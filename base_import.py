@@ -11,6 +11,7 @@ import win32com.client
 import subprocess
 import pynput
 import psutil
+import pyperclip
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *

@@ -105,7 +105,7 @@ class DropRunner(WidgetBox):
             import traceback
             traceback.print_exc()
 
-    def restartEverything(self, *, confirm=True):
+    def restartEverything(self, *, confirm=False):
         if confirm:
             popup = ConfirmationPopup("Restart?")
             popup.show_popup()
