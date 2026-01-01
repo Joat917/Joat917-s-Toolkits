@@ -31,6 +31,7 @@ class MainWindow(QWidget):
 
         self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], auto_start=True)
         self.globalKeyboardListener.press_callbacks.append(self._globalHotkeyHandler)
+        self.hotkey_callbacks = collections.defaultdict(list)
 
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
@@ -75,6 +76,9 @@ class MainWindow(QWidget):
         # 如果按下F24，切换隐藏状态
         if key_str == 'F24':
             self.refreshHiddenState(not self.hidden)
+        if key_str in self.hotkey_callbacks:
+            for callback in self.hotkey_callbacks[key_str]:
+                callback()
         
     def contextMenuEvent(self, a0):
         self.trayWidget.tray_icon.contextMenu().exec_(a0.globalPos())
@@ -207,7 +211,7 @@ class MainWindow(QWidget):
 
 class BackgroundWidget(QLabel):
     DEFAULT_COLOR = "lightblue"
-    IMAGE_PATH = None  # "path/to/your/image.png"
+    IMAGE_PATH = "img/bg_image.png"
     BORDER_RADIUS = 50
     def __init__(self, parent:QWidget):
         super().__init__(parent)
@@ -236,14 +240,13 @@ class BackgroundWidget(QLabel):
         self.container.show()
 
 class WidgetBox(QWidget):
-    FONT_NAME = "STXINWEI"
     "一个盒子，里面可以自定义布局放置元素。盒子边界为圆角矩形，上边界中央显示标题"
     def __init__(self, parent:QWidget=None, title:str="WidgetBox", widgets:list[QWidget]=[]):
         super().__init__(parent)
         self.layout=QVBoxLayout(self)
         self.title=QLabel(title, self)
         self.title.setAlignment(Qt.AlignCenter)
-        self.title.setFont(QFont(self.FONT_NAME, 12, QFont.Bold))
+        self.title.setFont(QFont(FONT_NAME, 12, QFont.Bold))
         self.layout.addWidget(self.title)
         self.content=QWidget(self)
         self.content_layout=QVBoxLayout(self.content)
@@ -277,39 +280,42 @@ class WidgetBox(QWidget):
         painter.end()
 
 class TrayIconWidget:
-    ICON_PATH = "icon.png"
+    ICON_PATH = "img/icon.png"
     def __init__(self, manager:MainWindow=None):
         self.manager=manager
         self.app = QApplication(sys.argv)
         self.tray_icon = QSystemTrayIcon(QIcon(self.ICON_PATH), self.app)
         self.tray_icon.setToolTip("MyToolkit")
 
-        menu = QMenu()
+        menu = self.menu = QMenu()
 
-        self.widget0_action = QAction("Joat917's Toolkit", self.app)
-        self.widget0_action.triggered.connect(lambda:print("Hello there!"))
-        menu.addAction(self.widget0_action)
-        
-        # self.widget1_action = QAction("Useless Button", self.app)
-        # self.widget1_action.triggered.connect(self.action)
-        # menu.addAction(self.widget1_action)
-
-        self.hideshow_action = QAction("Hide/Show(F24)", self.app)
-        self.hideshow_callback=lambda:self.manager.refreshHiddenState(not self.manager.hidden)
-        self.hideshow_action.triggered.connect(self.hideshow_callback)
-        menu.addAction(self.hideshow_action)
-        
-        self.exit_action = QAction("Exit(F18)", self.app)
-        self.exit_action.triggered.connect(self.exit)
-        menu.addAction(self.exit_action)
-
+        self.tray_actions = {}
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
-        self.tray_icon.show()
+
+        self.add_action("Joat917's Toolkit", lambda:print("Hello there!"))
+        self.add_action("Hide/Show(F24)", lambda:self.manager.refreshHiddenState(not self.manager.hidden))
+        self.add_action("Exit(F18)", self.exit)
+
+        self.tray_icon.show()        
     
     def action(self):
         if self.manager is not None:
             self.manager.action()
+
+    def add_action(self, name:str, callback):
+        action = QAction(name, self.app)
+        action.triggered.connect(callback)
+        self.menu.addAction(action)
+        self.tray_actions[name] = action
+        return action
+
+    def remove_action(self, name:str):
+        if name in self.tray_actions:
+            action = self.tray_actions[name]
+            self.menu.removeAction(action)
+            self.tray_actions[name].deleteLater()
+            self.tray_actions.pop(name)
 
     def on_tray_icon_activated(self, reason):
         # 左键单击托盘图标时切换隐藏状态
@@ -323,7 +329,6 @@ class TrayIconWidget:
         
 if __name__ == "__main__":
     from start_check import check_started
-    BackgroundWidget.IMAGE_PATH = os.path.join(os.path.dirname(__file__), "test_image.png")
     app = QApplication(sys.argv)
     check_started()
     MainWindow.TITLE = "Main Window Test"

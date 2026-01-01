@@ -73,7 +73,6 @@ class SwitchButton(QLabel):
 
 class ColoredButton(QPushButton):
     "带背景色的圆角按钮"
-    FONT_NAME = "STXINWEI"
     def __init__(
             self, text="", parent=None, 
             width=160, height=60, fontSize=10,
@@ -166,7 +165,7 @@ class ColoredButton(QPushButton):
 
         # 绘制文本
         painter.setPen(self.text_color)
-        font = QFont(self.FONT_NAME)
+        font = QFont(FONT_NAME)
         font.setPointSize(self.fontSize)
         painter.setFont(font)
         painter.drawText(self.rect(), Qt.AlignCenter, self.text())
@@ -175,9 +174,8 @@ class ColoredButton(QPushButton):
 
     
 if __name__ == "__main__":
-    from main_window import MainWindow, BackgroundWidget, WidgetBox
+    from main_window import MainWindow, WidgetBox
     from start_check import check_started
-    BackgroundWidget.IMAGE_PATH = os.path.join(os.path.dirname(__file__), "test_image.png")
     app = QApplication(sys.argv)
     check_started()
     MainWindow.TITLE = "Switches Test"
