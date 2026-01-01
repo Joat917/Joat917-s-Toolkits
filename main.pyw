@@ -6,6 +6,7 @@ from switch_widgets import SwitchButton, PushButton
 from drop_runner import DropRunner
 from keyboard_displayer import KeyDisplayerManager
 from popup_window import FadingPopup
+from clickclick_clicker import ClickerWidget
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -42,6 +43,12 @@ if __name__ == "__main__":
             bg_color=QColor(250, 150, 100),
             onclick=lambda: (pyperclip.copy(""), FadingPopup("Clipboard cleared!").fadeIn())
         ), 
+        PushButton(
+            text = "Advanced ClipboardReader",
+            width=320,
+            bg_color=QColor(100, 250, 150),
+            onclick=lambda: drop_runner.run(os.path.abspath('clipboard_reader.py'), without_console=True)
+        ), 
         PlainText(
             text="Press Win+V to View Clipboard History", 
         ), 
@@ -70,6 +77,9 @@ if __name__ == "__main__":
             onturnoff=lambda: (stopwatch.pop().close() if stopwatch else None)
         )]
     ))
+
+    clicker = ClickerWidget(window)
+    window.addWidget(clicker)
 
     window.show()
     sys.exit(app.exec_())

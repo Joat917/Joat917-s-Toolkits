@@ -246,6 +246,7 @@ class WidgetBox(QWidget):
         self.title=QLabel(title, self)
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setFont(QFont(FONT_NAME, 12, QFont.Bold))
+        self.title.setStyleSheet(f"color: {PlainText.TEXT_COLOR};")
         self.layout.addWidget(self.title)
         self.content=QWidget(self)
         self.content_layout=QVBoxLayout(self.content)
@@ -279,12 +280,14 @@ class WidgetBox(QWidget):
         painter.end()
 
 class PlainText(QLabel):
+    TEXT_COLOR = 'white'
     def __init__(self, text:str="", parent:QWidget=None):
         super().__init__(parent)
         self.setText(text)
         self.setFont(QFont(FONT_NAME, 10))
         self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.setWordWrap(True)
+        self.setStyleSheet(f"color: {self.TEXT_COLOR};")
     
 
 class TrayIconWidget:
