@@ -31,7 +31,7 @@ class MainWindow(QWidget):
 
         self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], auto_start=True)
         self.globalKeyboardListener.press_callbacks.append(self._globalHotkeyHandler)
-        self.hotkey_callbacks = collections.defaultdict(list)
+        self.hotkey_callbacks = {} # name: callback
 
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
@@ -76,9 +76,8 @@ class MainWindow(QWidget):
         # 如果按下F24，切换隐藏状态
         if key_str == 'F24':
             self.refreshHiddenState(not self.hidden)
-        if key_str in self.hotkey_callbacks:
-            for callback in self.hotkey_callbacks[key_str]:
-                callback()
+        for callback in self.hotkey_callbacks.values():
+            callback(key_str)
         
     def contextMenuEvent(self, a0):
         self.trayWidget.tray_icon.contextMenu().exec_(a0.globalPos())

@@ -174,11 +174,13 @@ class StopWatchMainWindow(QWidget):
         self._tray=None
         self._action=None
         self._master=mainWindow
-        if mainWindow is not None:
-            self._tray=mainWindow.trayWidget
+        if self._master is not None:
+            from main_window import MainWindow
+            assert isinstance(self._master, MainWindow)
+            self._tray=self._master.trayWidget
             self._action = self._tray.add_action("Stopwatch:START", self.action)
             self._hotkey = 'F13'
-            self._master.hotkey_callbacks[self._hotkey].append(self.action)
+            self._master.hotkey_callbacks[self._hotkey] = lambda key_str: self.action() if key_str == self._hotkey else None
         else:
             self._action = QAction("Stopwatch:START", self)
             self._action.triggered.connect(self.action)
@@ -261,7 +263,7 @@ class StopWatchMainWindow(QWidget):
             self._action.deleteLater()
             self._action = None
         if self._master is not None:
-            self._master.hotkey_callbacks[self._hotkey].remove(self.action)
+            self._master.hotkey_callbacks.pop(self._hotkey, None)
             self._master = None
         self._timer.stop()
         self._timer = None
