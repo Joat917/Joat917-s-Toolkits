@@ -1,6 +1,6 @@
 from base_import import *
 from popup_window import FadingPopup
-
+from keyboard_listener import KeyboardListenerSignalPatched as KeyboardListener
 
 class MainWindow(QWidget):
     # 大小和停靠位置参数
@@ -28,6 +28,9 @@ class MainWindow(QWidget):
 
         self.bgwidget=BackgroundWidget(self)
         self.trayWidget=TrayIconWidget(self)
+
+        self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], auto_start=True)
+        self.globalKeyboardListener.press_callbacks.append(self._globalHotkeyHandler)
 
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
@@ -65,12 +68,13 @@ class MainWindow(QWidget):
         return
     
     def keyPressEvent(self, a0):
-        # 如果按下F24，切换隐藏状态
-        if a0.key() == Qt.Key_F24:
-            self.refreshHiddenState(not self.hidden)
-        # 如果按下F18，直接退出
-        elif a0.key() == Qt.Key_F18:
+        if a0.key() == Qt.Key_F18:
             raise SystemExit
+        
+    def _globalHotkeyHandler(self, key_str):
+        # 如果按下F24，切换隐藏状态
+        if key_str == 'F24':
+            self.refreshHiddenState(not self.hidden)
         
     def contextMenuEvent(self, a0):
         self.trayWidget.tray_icon.contextMenu().exec_(a0.globalPos())
@@ -231,6 +235,47 @@ class BackgroundWidget(QLabel):
 
         self.container.show()
 
+class WidgetBox(QWidget):
+    FONT_NAME = "STXINWEI"
+    "一个盒子，里面可以自定义布局放置元素。盒子边界为圆角矩形，上边界中央显示标题"
+    def __init__(self, parent:QWidget=None, title:str="WidgetBox", widgets:list[QWidget]=[]):
+        super().__init__(parent)
+        self.layout=QVBoxLayout(self)
+        self.title=QLabel(title, self)
+        self.title.setAlignment(Qt.AlignCenter)
+        self.title.setFont(QFont(self.FONT_NAME, 12, QFont.Bold))
+        self.layout.addWidget(self.title)
+        self.content=QWidget(self)
+        self.content_layout=QVBoxLayout(self.content)
+        self.layout.addWidget(self.content)
+        # self.setObjectName(f"WidgetBox_{id(self)}")
+        # self.setStyleSheet(f"""
+        #     QWidget#{self.objectName()} {{
+        #         border: 10px solid gray;
+        #         border-radius: 15px;
+        #     }}
+        # """)
+        if widgets:
+            for widget in widgets:
+                self.addWidget(widget)
+
+    def addWidget(self, widget:QWidget):
+        self.content_layout.addWidget(widget)
+        widget.show()
+
+    # 绘制边框和圆角
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        # 绘制边框
+        pen = QPen(Qt.gray, 2)
+        painter.setPen(pen)
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        painter.drawRoundedRect(rect, 15, 15)
+
+        painter.end()
+
 class TrayIconWidget:
     ICON_PATH = "icon.png"
     def __init__(self, manager:MainWindow=None):
@@ -281,6 +326,7 @@ if __name__ == "__main__":
     BackgroundWidget.IMAGE_PATH = os.path.join(os.path.dirname(__file__), "test_image.png")
     app = QApplication(sys.argv)
     check_started()
+    MainWindow.TITLE = "Main Window Test"
     window = MainWindow(app=app)
     window.show()
     sys.exit(app.exec_())

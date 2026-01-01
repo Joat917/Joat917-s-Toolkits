@@ -73,6 +73,7 @@ class SwitchButton(QLabel):
 
 class ColoredButton(QPushButton):
     "带背景色的圆角按钮"
+    FONT_NAME = "STXINWEI"
     def __init__(
             self, text="", parent=None, 
             width=160, height=60, fontSize=10,
@@ -165,7 +166,7 @@ class ColoredButton(QPushButton):
 
         # 绘制文本
         painter.setPen(self.text_color)
-        font = QFont()
+        font = QFont(self.FONT_NAME)
         font.setPointSize(self.fontSize)
         painter.setFont(font)
         painter.drawText(self.rect(), Qt.AlignCenter, self.text())
@@ -174,24 +175,47 @@ class ColoredButton(QPushButton):
 
     
 if __name__ == "__main__":
-    from main_window import MainWindow, BackgroundWidget
+    from main_window import MainWindow, BackgroundWidget, WidgetBox
     from start_check import check_started
     BackgroundWidget.IMAGE_PATH = os.path.join(os.path.dirname(__file__), "test_image.png")
     app = QApplication(sys.argv)
     check_started()
+    MainWindow.TITLE = "Switches Test"
     window = MainWindow(app=app)
-    window.addWidget(
-        SwitchButton(
+    window.addWidget(WidgetBox(
+        window, 
+        title="Switch Buttons",
+        widgets=[SwitchButton(
             onchange=lambda state: print("State changed to", state),
             onturnon=lambda: print("Turned ON"),
             onturnoff=lambda: print("Turned OFF")
-        ))
-    window.addWidget(
+        ), 
+        SwitchButton()
+        ]
+    ))
+    window.addWidget(WidgetBox(
+        window,
+        title="Colored Buttons",
+        widgets=[
         ColoredButton(
-            text="Colored Button",
+            text="Colored Button #1",
+            width=240,
             bg_color=QColor(100, 200, 100), 
-            onclick=lambda: print("Colored Button Clicked")
-        ))
+            onclick=lambda: print("Colored Button #1 Clicked")
+        ), ColoredButton(
+            text="Colored Button #2",
+            width=240,
+            bg_color=QColor(200, 100, 150),
+            onclick=lambda: print("Colored Button #2 Clicked")
+        ), 
+        ColoredButton(
+            text="Colored Button #3",
+            width=240,
+            bg_color=QColor(150, 100, 200), 
+            onclick=lambda: print("Colored Button #3 Clicked")
+        )
+        ]
+    ))
     window.show()
     sys.exit(app.exec_())
 
