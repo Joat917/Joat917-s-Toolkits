@@ -5,7 +5,7 @@ KEYGROUPS={}
 for i in range(len(KEYPAIRPRE)):
     KEYGROUPS[KEYPAIRPRE[i]]=(KEYPAIRPRE[i|1], KEYPAIRPRE[i&(-2)])
 for ch in 'abcdefghijklmnopqrstuvwxyz':
-    _keys_in_group = (ch.upper(), f"Ctrl^{ch.upper()}")
+    _keys_in_group = (ch.upper(), f"Ctrl^{ch.upper()}".upper())
     for _k in _keys_in_group:
         KEYGROUPS[_k] = _keys_in_group
 
@@ -50,6 +50,7 @@ class KeyboardListener:
             if not all([0x20<=ord(ch)<=0x7e for ch in c]):
                 return
             if callgroup:
+                # 松开全部同组按键
                 for d in KEYGROUPS.get(c, (c,)):
                     if d!=c:
                         callback(d)

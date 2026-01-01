@@ -15,7 +15,6 @@ if __name__ == "__main__":
     window = MainWindow(app=app)
 
     drop_runner = DropRunner(window)
-    window.addWidget(drop_runner)
 
     window.addWidget(WidgetBox(
         parent=window,
@@ -53,10 +52,34 @@ if __name__ == "__main__":
             text="Press Win+V to View Clipboard History", 
         ), 
         PlainText(
+            text="Press Win+Shift+V to Open Advanced Paster", 
+        ), 
+        PlainText(
             text="Press Win+Ctrl+Alt+V to Paste as Plain Text", 
         )
         ]
     ))
+
+    window.addWidget(WidgetBox(
+        parent=window,
+        title="Hotkey Guide", 
+        widgets=[
+            PlainText(
+                text="Win+Shift+M: Measure Screen Distance", 
+            ), 
+            PlainText(
+                text="Win+Shift+C: Open Color Picker", 
+            ), 
+            PlainText(
+                text="Win+Shift+T: OCR Text from Screen", 
+            ), 
+            PlainText(
+                text="Hold Win Key to see other hotkeys", 
+            )
+        ]
+    ))
+
+    window.addWidget(drop_runner)
 
     keyboard_manager = []
     window.addWidget(WidgetBox(
