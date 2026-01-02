@@ -67,13 +67,13 @@ if __name__ == "__main__":
         title="Hotkey Guide", 
         widgets=[
             PlainText(
-                text="Win+Shift+M: Measure Screen Distance", 
+                text="Win+Shift+M: Measure Distance", 
             ), 
             PlainText(
-                text="Win+Shift+C: Open Color Picker", 
+                text="Win+Shift+C: Color Picker", 
             ), 
             PlainText(
-                text="Win+Shift+T: OCR Text from Screen", 
+                text="Win+Shift+T: OCR Text", 
             ), 
             PlainText(
                 text="Hold Win Key to see other hotkeys", 
@@ -82,6 +82,9 @@ if __name__ == "__main__":
     ))
 
     window.addWidget(drop_runner)
+
+    clicker = ClickerWidget(window)
+    window.addWidget(clicker)
 
     keyboard_manager = []
     window.addWidget(WidgetBox(
@@ -103,8 +106,30 @@ if __name__ == "__main__":
         )]
     ))
 
-    clicker = ClickerWidget(window)
-    window.addWidget(clicker)
+    window.addWidget(WidgetBox(
+        parent=window,
+        title="Other Tools",
+        widgets=[
+            PushButton(
+                onclick=lambda: drop_runner.run(os.path.abspath('word_counter.py')), 
+                text="Word Counter", 
+                width=220, 
+                bg_color=QColor(200, 200, 100)
+            ), 
+            PushButton(
+                onclick=lambda: drop_runner.run(os.path.abspath('hex_quickview.py')), 
+                text="Raw Hex Previewer", 
+                width=260, 
+                bg_color=QColor(100, 200, 200)
+            ),
+            PushButton(
+                onclick=lambda: drop_runner.run(os.path.abspath('ScdAch/mainmenu.py'), without_console=True), 
+                text="Schedule Achievements", 
+                width=300, 
+                bg_color=QColor(200, 100, 200)
+            ),
+        ]
+    ))
 
     window.show()
     sys.exit(app.exec_())
