@@ -14,12 +14,15 @@ class InformationPopup(PopupWindow):
     def __init__(self, message, title="Information"):
         super().__init__()
         self.setWindowTitle(title)
+        self.setWindowIcon(QIcon(ICON_PATH))
 
         self.label = QLabel(message, self)
         self.label.setWordWrap(True)
+        self.label.setFont(QFont(FONT_NAME, 10))
 
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.close)
+        self.ok_button.setFont(QFont(FONT_NAME, 10))
 
         # 一行文字，最后一行居中显示按钮
         self.layout = QVBoxLayout()
@@ -31,16 +34,20 @@ class ConfirmationPopup(PopupWindow):
     def __init__(self, message, title="Confirmation", callback=lambda response: None):
         super().__init__()
         self.setWindowTitle(title)
+        self.setWindowIcon(QIcon(ICON_PATH))
         self.callback = callback
         self.user_response = None
         
         self.label = QLabel(message, self)
         self.label.setWordWrap(True)
+        self.label.setFont(QFont(FONT_NAME, 10))
 
         self.yes_button = QPushButton("Yes")
         self.yes_button.clicked.connect(self.yes_clicked)
         self.no_button = QPushButton("No")
         self.no_button.clicked.connect(self.no_clicked)
+        self.yes_button.setFont(QFont(FONT_NAME, 10))
+        self.no_button.setFont(QFont(FONT_NAME, 10))
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.label)
@@ -84,7 +91,7 @@ class FadingPopup(QWidget):
         palette.setColor(QPalette.WindowText, Qt.white)
         self.label.setPalette(palette)
         self.label.setStyleSheet(
-            "background-color: #ddd; border-radius: 20px; padding: 10px; color: #222; font-size: 36px"
+            f"background-color: #ddd; border-radius: 20px; padding: 10px; color: #222; font-size: 36px; font-family: {FONT_NAME};"
         )
         layout.addWidget(self.label)
         self.setLayout(layout)

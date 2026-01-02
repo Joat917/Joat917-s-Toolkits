@@ -242,6 +242,7 @@ class WidgetBox(QWidget):
     "一个盒子，里面可以自定义布局放置元素。盒子边界为圆角矩形，上边界中央显示标题"
     def __init__(self, parent:QWidget=None, title:str="WidgetBox", widgets:list[QWidget]=[]):
         super().__init__(parent)
+        self.master=parent
         self.layout=QVBoxLayout(self)
         self.title=QLabel(title, self)
         self.title.setAlignment(Qt.AlignCenter)

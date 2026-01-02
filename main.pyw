@@ -7,6 +7,7 @@ from drop_runner import DropRunner
 from keyboard_displayer import KeyDisplayerManager
 from popup_window import FadingPopup
 from clickclick_clicker import ClickerWidget
+from clipboard_widget import ClipboardWidget
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -27,38 +28,39 @@ if __name__ == "__main__":
         )]
     ))
 
-    window.addWidget(WidgetBox(
-        parent=window,
-        title="Clipboard Utilities",
-        widgets=[PushButton(
-            text="Clipboard Clear Format", 
-            width=320, 
-            bg_color=QColor(150, 100, 250),
-            onclick=lambda: (pyperclip.copy(pyperclip.paste()), FadingPopup("Clipboard format cleared!").fadeIn())
-        ), 
-        PushButton(
-            text="Clipboard Clear Content", 
-            width=320, 
-            bg_color=QColor(250, 150, 100),
-            onclick=lambda: (pyperclip.copy(""), FadingPopup("Clipboard cleared!").fadeIn())
-        ), 
-        PushButton(
-            text = "Advanced ClipboardReader",
-            width=320,
-            bg_color=QColor(100, 250, 150),
-            onclick=lambda: drop_runner.run(os.path.abspath('clipboard_reader.py'), without_console=True)
-        ), 
-        PlainText(
-            text="Press Win+V to View Clipboard History", 
-        ), 
-        PlainText(
-            text="Press Win+Shift+V to Open Advanced Paster", 
-        ), 
-        PlainText(
-            text="Press Win+Ctrl+Alt+V to Paste as Plain Text", 
-        )
-        ]
-    ))
+    # window.addWidget(WidgetBox(
+    #     parent=window,
+    #     title="Clipboard Utilities",
+    #     widgets=[PushButton(
+    #         text="Clipboard Clear Format", 
+    #         width=320, 
+    #         bg_color=QColor(150, 100, 250),
+    #         onclick=lambda: (pyperclip.copy(pyperclip.paste()), FadingPopup("Clipboard format cleared!").fadeIn())
+    #     ), 
+    #     PushButton(
+    #         text="Clipboard Clear Content", 
+    #         width=320, 
+    #         bg_color=QColor(250, 150, 100),
+    #         onclick=lambda: (pyperclip.copy(""), FadingPopup("Clipboard cleared!").fadeIn())
+    #     ), 
+    #     PushButton(
+    #         text = "Advanced ClipboardReader",
+    #         width=320,
+    #         bg_color=QColor(100, 250, 150),
+    #         onclick=lambda: drop_runner.run(os.path.abspath('clipboard_reader.py'), without_console=True)
+    #     ), 
+    #     PlainText(
+    #         text="Press Win+V to View Clipboard History", 
+    #     ), 
+    #     PlainText(
+    #         text="Press Win+Shift+V to Open Advanced Paster", 
+    #     ), 
+    #     PlainText(
+    #         text="Press Win+Ctrl+Alt+V to Paste as Plain Text", 
+    #     )
+    #     ]
+    # ))
+    window.addWidget(ClipboardWidget(parent=window))
 
     window.addWidget(WidgetBox(
         parent=window,

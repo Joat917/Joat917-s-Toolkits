@@ -12,6 +12,8 @@ import subprocess
 import pynput
 import psutil
 import pyperclip
+import win32clipboard
+import pywintypes
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -22,4 +24,4 @@ os.environ['PYTHONUTF8'] = '1'
 os.chdir(os.path.dirname(__file__))
 
 FONT_NAME = "STXINWEI"
-
+ICON_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), 'img', 'icon.png'))
