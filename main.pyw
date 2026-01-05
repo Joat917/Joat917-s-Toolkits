@@ -132,5 +132,13 @@ if __name__ == "__main__":
     ))
 
     window.show()
-    sys.exit(app.exec_())
+    try:
+        ret = app.exec_()
+    except Exception as e:
+        import traceback
+        with open("error_log.txt", "a+", encoding="utf-8") as f:
+            f.write(traceback.format_exc())
+            f.write("\n\n")
+        ret = 1
+    sys.exit(ret)
 

@@ -31,6 +31,7 @@ class InlineCalculator(code.InteractiveConsole):
             'from PIL import Image, ImageDraw, ImageFont',
             'from unitex_jsrunner import convert as unitex', 
             'from pyperclip import copy, paste', 
+            '__import__("os").system("title Inline Calculator") and None or None' if os.name == 'nt' else '',
             f'__import__("os").chdir({os.path.abspath(os.path.expanduser("~"))!r})'
         ]:
             self.push(command)
@@ -51,7 +52,7 @@ class InlineCalculator(code.InteractiveConsole):
             pass
 
     def interact(self):
-        print("Inline calculator: Enter expression to evaluate.")
+        print("Inline Calculator (like IDLE).")
         print("Try 'help()' for help, EOF to exit.")
 
         more = 0

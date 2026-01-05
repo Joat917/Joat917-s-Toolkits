@@ -38,6 +38,8 @@ class MainWindow(QWidget):
         scroll.setStyleSheet("border: none;")
         content_widget = QWidget(scroll)
         scroll.setWidget(content_widget)
+        # 捕获横向滚轮（触摸板/鼠标）事件，交给 MainWindow 处理
+        scroll.viewport().installEventFilter(self)
         self.layout = QVBoxLayout(content_widget)
 
         self.main_layout = QVBoxLayout(self)
@@ -77,7 +79,10 @@ class MainWindow(QWidget):
         if key_str == 'F24':
             self.refreshHiddenState(not self.hidden)
         for callback in self.hotkey_callbacks.values():
-            callback(key_str)
+            try:
+                callback(key_str)
+            except Exception as e:
+                print(f"Error in hotkey callback: {e}")
         
     def contextMenuEvent(self, a0):
         self.trayWidget.tray_icon.contextMenu().exec_(a0.globalPos())
@@ -169,9 +174,31 @@ class MainWindow(QWidget):
             self._keyboard_moving_timer = None
             self._settle_hidden_position()
         self.hidden = hidden
+        if not self.hidden:
+            self.setFocus()
+            import ctypes
+            ctypes.windll.user32.SetWindowPos(int(self.winId()), -1, 0, 0, 0, 0, 0x0001|0x0002)
         self._keyboard_moving_timer = QTimer(self)
         self._keyboard_moving_timer.timeout.connect(self._keyboard_moving_updater)
         self._keyboard_moving_timer.start(16)
+
+    def eventFilter(self, obj, event):
+        # 监听安装到 scroll.viewport() 的滚轮事件，检测横向滚动
+        try:
+            if event.type() == QEvent.Wheel:
+                delta = event.angleDelta()
+                dx = delta.x()
+                dy = delta.y()
+                print(dx, dy)
+                # 当横向位移明显大于纵向时，视为横向滚动输入
+                if abs(dx) > abs(dy):
+                    if not self.hidden and dx > 0:
+                        self.refreshHiddenState(True)
+                    elif self.hidden and dx < 0:
+                        self.refreshHiddenState(False)
+        except Exception:
+            pass
+        return super().eventFilter(obj, event)
 
     @ staticmethod
     def showPopup(message, parent=None):

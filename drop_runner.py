@@ -119,7 +119,10 @@ class DropRunner(WidgetBox):
         os.chdir(os.path.dirname(__file__))
         subprocess.Popen(sys.orig_argv[:]+['--forceKillAllExistingInstances'], creationflags=subprocess.CREATE_NEW_CONSOLE)
         # this process will be killed by the newly started process
-        
+
+    def close(self):
+        self.master.trayWidget.remove_action("Restart")
+        return super().close()
 
 if __name__ == "__main__":
     from main_window import MainWindow, WidgetBox

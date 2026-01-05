@@ -101,7 +101,11 @@ class ClipboardWidget(WidgetBox):
         DropRunner(self.master).run(os.path.abspath('clipboard_reader.py'), without_console=True)
 
     def refresh_clipboard_state(self):
-        self.current_clipboard_state.setText(f"Current State: {get_clipboard_state()}")
+        try:
+            text = f"Current State: {get_clipboard_state()}"
+        except Exception as e:
+            text = "<error>"
+        self.current_clipboard_state.setText(text)
 
 
 def get_clipboard_state()->str:
