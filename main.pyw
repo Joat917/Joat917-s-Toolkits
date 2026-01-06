@@ -28,60 +28,10 @@ if __name__ == "__main__":
         )]
     ))
 
-    # window.addWidget(WidgetBox(
-    #     parent=window,
-    #     title="Clipboard Utilities",
-    #     widgets=[PushButton(
-    #         text="Clipboard Clear Format", 
-    #         width=320, 
-    #         bg_color=QColor(150, 100, 250),
-    #         onclick=lambda: (pyperclip.copy(pyperclip.paste()), FadingPopup("Clipboard format cleared!").fadeIn())
-    #     ), 
-    #     PushButton(
-    #         text="Clipboard Clear Content", 
-    #         width=320, 
-    #         bg_color=QColor(250, 150, 100),
-    #         onclick=lambda: (pyperclip.copy(""), FadingPopup("Clipboard cleared!").fadeIn())
-    #     ), 
-    #     PushButton(
-    #         text = "Advanced ClipboardReader",
-    #         width=320,
-    #         bg_color=QColor(100, 250, 150),
-    #         onclick=lambda: drop_runner.run(os.path.abspath('clipboard_reader.py'), without_console=True)
-    #     ), 
-    #     PlainText(
-    #         text="Press Win+V to View Clipboard History", 
-    #     ), 
-    #     PlainText(
-    #         text="Press Win+Shift+V to Open Advanced Paster", 
-    #     ), 
-    #     PlainText(
-    #         text="Press Win+Ctrl+Alt+V to Paste as Plain Text", 
-    #     )
-    #     ]
-    # ))
     window.addWidget(ClipboardWidget(parent=window))
 
-    window.addWidget(WidgetBox(
-        parent=window,
-        title="Hotkey Guide", 
-        widgets=[
-            PlainText(
-                text="Win+Shift+M: Measure Distance", 
-            ), 
-            PlainText(
-                text="Win+Shift+C: Color Picker", 
-            ), 
-            PlainText(
-                text="Win+Shift+T: OCR Text", 
-            ), 
-            PlainText(
-                text="Hold Win Key to see other hotkeys", 
-            )
-        ]
-    ))
-
     window.addWidget(drop_runner)
+    window.droprunner = drop_runner
 
     clicker = ClickerWidget(window)
     window.addWidget(clicker)
@@ -128,6 +78,25 @@ if __name__ == "__main__":
                 width=300, 
                 bg_color=QColor(200, 100, 200)
             ),
+        ]
+    ))
+
+    window.addWidget(WidgetBox(
+        parent=window,
+        title="Hotkey Guide", 
+        widgets=[
+            PlainText(
+                text="Win+Shift+M: Measure Distance", 
+            ), 
+            PlainText(
+                text="Win+Shift+C: Color Picker", 
+            ), 
+            PlainText(
+                text="Win+Shift+T: OCR Text", 
+            ), 
+            PlainText(
+                text="Hold Win Key to see other hotkeys", 
+            )
         ]
     ))
 

@@ -178,8 +178,8 @@ class StopWatchMainWindow(QWidget):
             from main_window import MainWindow
             assert isinstance(self._master, MainWindow)
             self._tray=self._master.trayWidget
-            self._action = self._tray.add_action("Stopwatch:START", self.action)
             self._hotkey = 'F13'
+            self._action = self._tray.add_action("Stopwatch:START"+f"({self._hotkey})", self.action)
             self._master.hotkey_callbacks[self._hotkey] = lambda key_str: self.action() if key_str == self._hotkey else None
         else:
             self._action = QAction("Stopwatch:START", self)
@@ -193,19 +193,19 @@ class StopWatchMainWindow(QWidget):
             self._mode=1
             self._timeRecord=time.time()
             if self._action is not None:
-                self._action.setText('Stopwatch:STOP')
+                self._action.setText('Stopwatch:STOP'+(f"({self._hotkey})" if self._master is not None else ''))
         elif self._mode==1:
             self._mode=2
             self._timeRecord=time.time()-self._timeRecord
             self._refresh(self._timeRecord)
             if self._action is not None:
-                self._action.setText('Stopwatch:RESET')
+                self._action.setText('Stopwatch:RESET'+(f"({self._hotkey})" if self._master is not None else ''))
         elif self._mode==2:
             self._mode=0
             self._timeRecord=None
             self._refresh(0)
             if self._action is not None:
-                self._action.setText('Stopwatch:START')
+                self._action.setText('Stopwatch:START'+(f"({self._hotkey})" if self._master is not None else ''))
         else:
             assert False
         return

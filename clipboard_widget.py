@@ -98,7 +98,13 @@ class ClipboardWidget(WidgetBox):
             win32clipboard.CloseClipboard()
 
     def start_advanced_reader_callback(self):
-        DropRunner(self.master).run(os.path.abspath('clipboard_reader.py'), without_console=True)
+        if hasattr(self.master, 'droprunner') and isinstance(self.master.droprunner, DropRunner):
+            droprunner=self.master.droprunner
+            droprunner.run(os.path.abspath('clipboard_reader.py'), without_console=True)
+        else:
+            droprunner=DropRunner(self.master)
+            droprunner.run(os.path.abspath('clipboard_reader.py'), without_console=True)
+            droprunner.close()
 
     def refresh_clipboard_state(self):
         try:

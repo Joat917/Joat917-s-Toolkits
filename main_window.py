@@ -38,8 +38,29 @@ class MainWindow(QWidget):
         scroll.setStyleSheet("border: none;")
         content_widget = QWidget(scroll)
         scroll.setWidget(content_widget)
-        # 捕获横向滚轮（触摸板/鼠标）事件，交给 MainWindow 处理
-        scroll.viewport().installEventFilter(self)
+        scroll.viewport().installEventFilter(self) # 捕获横向滚轮（触摸板/鼠标）事件，交给 MainWindow 处理
+        scroll.verticalScrollBar().setContextMenuPolicy(Qt.NoContextMenu)
+        # 圆形滚动条样式
+        scroll.verticalScrollBar().setStyleSheet("""
+            QScrollBar:vertical {
+                background: transparent;
+                width: 12px;
+                margin: 0px 0px 0px 0px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(255, 255, 255, 150);
+                min-height: 20px;
+                border-radius: 6px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: transparent;
+            }
+        """)
+
         self.layout = QVBoxLayout(content_widget)
 
         self.main_layout = QVBoxLayout(self)
@@ -151,8 +172,9 @@ class MainWindow(QWidget):
 
     def _keyboard_moving_updater(self):
         if self.drag_position is not None:
-            self._keyboard_moving_timer.stop()
-            self._keyboard_moving_timer = None
+            if self._keyboard_moving_timer is not None:
+                self._keyboard_moving_timer.stop()
+                self._keyboard_moving_timer = None
             return
         current_pos = self.pos()
         target_pos = self.position_1 if not self.hidden else self.position_2
@@ -173,14 +195,19 @@ class MainWindow(QWidget):
             self._keyboard_moving_timer.stop()
             self._keyboard_moving_timer = None
             self._settle_hidden_position()
+        if not hidden and self.hidden:
+            self.hidden = hidden
+            self.activateCallback()
         self.hidden = hidden
-        if not self.hidden:
-            self.setFocus()
-            import ctypes
-            ctypes.windll.user32.SetWindowPos(int(self.winId()), -1, 0, 0, 0, 0, 0x0001|0x0002)
         self._keyboard_moving_timer = QTimer(self)
         self._keyboard_moving_timer.timeout.connect(self._keyboard_moving_updater)
         self._keyboard_moving_timer.start(16)
+
+    def activateCallback(self):
+        self.refreshHiddenState(False)
+        self.show()
+        self.activateWindow()
+        self.raise_()
 
     def eventFilter(self, obj, event):
         # 监听安装到 scroll.viewport() 的滚轮事件，检测横向滚动
@@ -357,9 +384,8 @@ class TrayIconWidget:
             self.tray_actions.pop(name)
 
     def on_tray_icon_activated(self, reason):
-        # 左键单击托盘图标时切换隐藏状态
         if reason == QSystemTrayIcon.Trigger:
-            self.manager.refreshHiddenState(not self.manager.hidden)
+            self.manager.activateCallback()
 
     def exit(self):
         self.app.quit()
