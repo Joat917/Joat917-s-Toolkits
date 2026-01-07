@@ -113,6 +113,11 @@ class ClipboardWidget(WidgetBox):
             text = "<error>"
         self.current_clipboard_state.setText(text)
 
+    def closeEvent(self, event):
+        self.timer.timeout.disconnect()
+        self.timer.stop()
+        super().closeEvent(event)
+
 
 def get_clipboard_state()->str:
     known_formats = {

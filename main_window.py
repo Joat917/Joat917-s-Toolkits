@@ -29,7 +29,7 @@ class MainWindow(QWidget):
         self.bgwidget=BackgroundWidget(self)
         self.trayWidget=TrayIconWidget(self)
 
-        self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], auto_start=True)
+        self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], auto_start=True, parent=self)
         self.globalKeyboardListener.press_callbacks.append(self._globalHotkeyHandler)
         self.hotkey_callbacks = {} # name: callback
 
@@ -167,6 +167,7 @@ class MainWindow(QWidget):
         self.drag_position = None
         if self._keyboard_moving_timer is not None:
             self._keyboard_moving_timer.stop()
+            self._keyboard_moving_timer.timeout.disconnect()
         self._keyboard_moving_timer = None
         if self.hidden:
             self.move(self.position_2)
@@ -177,6 +178,7 @@ class MainWindow(QWidget):
         if self.drag_position is not None:
             if self._keyboard_moving_timer is not None:
                 self._keyboard_moving_timer.stop()
+                self._keyboard_moving_timer.timeout.disconnect()
                 self._keyboard_moving_timer = None
             return
         current_pos = self.pos()
@@ -187,6 +189,7 @@ class MainWindow(QWidget):
             self.move(target_pos)
             if self._keyboard_moving_timer is not None:
                 self._keyboard_moving_timer.stop()
+                self._keyboard_moving_timer.timeout.disconnect()
                 self._keyboard_moving_timer = None
             return
         step = QPointF(delta.x() * self.K, delta.y() * self.K)
@@ -196,6 +199,7 @@ class MainWindow(QWidget):
     def refreshHiddenState(self, hidden: bool):
         if self._keyboard_moving_timer is not None:
             self._keyboard_moving_timer.stop()
+            self._keyboard_moving_timer.timeout.disconnect()
             self._keyboard_moving_timer = None
             self._settle_hidden_position()
         if not hidden and self.hidden:
@@ -255,7 +259,16 @@ class MainWindow(QWidget):
         self.timer.singleShot(2000, self.checkApp)
     
     def closeEvent(self, a0):
-        raise SystemExit
+        self.animation_timer.stop()
+        self.animation_timer.timeout.disconnect()
+        if self._keyboard_moving_timer is not None:
+            self._keyboard_moving_timer.stop()
+            self._keyboard_moving_timer.timeout.disconnect()
+        self.hotkey_callbacks.clear()
+        self.globalKeyboardListener.press_callbacks.clear()
+        self.globalKeyboardListener.release_callbacks.clear()
+        self.globalKeyboardListener.close()
+        return super().closeEvent(a0)
     
     @property
     def isMoving(self):

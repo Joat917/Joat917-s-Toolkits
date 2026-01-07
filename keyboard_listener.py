@@ -86,8 +86,8 @@ class KeyboardListener:
 class KeyboardListenerSignalPatched(KeyboardListener, QObject):
     signalPress = pyqtSignal(str)
     signalRelease=pyqtSignal(str)
-    def __init__(self, press_callbacks=[], release_callbacks=[], auto_start=True):
-        QObject.__init__(self)
+    def __init__(self, press_callbacks=[], release_callbacks=[], parent=None, auto_start=True):
+        QObject.__init__(self, parent=parent)
         KeyboardListener.__init__(self, press_callbacks=[], release_callbacks=[], auto_start=False)
         self.signalPress.connect(self.callbackPress)
         self.signalRelease.connect(self.callbackRelease)
@@ -102,6 +102,13 @@ class KeyboardListenerSignalPatched(KeyboardListener, QObject):
 
     def _callbackRelease(self, key_str):
         self.signalRelease.emit(key_str)
+
+    def close(self):
+        self.keyboardListener.stop()
+        self.mouseListener.stop()
+        self.signalPress.disconnect()
+        self.signalRelease.disconnect()
+        super(QObject, self).close()
 
 
 if __name__=="__main__":

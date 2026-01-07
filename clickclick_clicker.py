@@ -122,9 +122,10 @@ class ClickerWidget(WidgetBox):
         if key=='F16':
             self.stop_clicking()
 
-    def close(self):
+    def closeEvent(self, a0):
         self.stop_clicking()
         self.master.globalKeyboardListener.press_callbacks.remove(self.start_clicking_callback)
         self.master.globalKeyboardListener.release_callbacks.remove(self.stop_clicking_callback)
-        super().close()
+        self.click_timer.timeout.disconnect()
+        return super().closeEvent(a0)
 

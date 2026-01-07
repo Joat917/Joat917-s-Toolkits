@@ -324,7 +324,9 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 
 	def closeEvent(self, event):
 		self.save_geometry()
-		event.accept()
+		self.timer.timeout.disconnect()
+		self.timer.stop()
+		super().closeEvent(event)
 
 
 def main():
