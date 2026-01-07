@@ -103,7 +103,10 @@ class MainWindow(QWidget):
             try:
                 callback(key_str)
             except Exception as e:
-                print(f"Error in hotkey callback: {e}")
+                message=f"Error in hotkey callback: {e}"
+                print(message)
+                if hasattr(self, 'droprunner'):
+                    self.droprunner.push_message()
         
     def contextMenuEvent(self, a0):
         self.trayWidget.tray_icon.contextMenu().exec_(a0.globalPos())
@@ -216,7 +219,6 @@ class MainWindow(QWidget):
                 delta = event.angleDelta()
                 dx = delta.x()
                 dy = delta.y()
-                print(dx, dy)
                 # 当横向位移明显大于纵向时，视为横向滚动输入
                 if abs(dx) > abs(dy):
                     if not self.hidden and dx > 0:
@@ -246,12 +248,10 @@ class MainWindow(QWidget):
     
     def checkApp(self):
         if self.app is None:
-            print("App not found, exiting.")
-            raise SystemExit
+            raise RuntimeError("App not found, exiting.")
         handle = self.windowHandle()
         if handle is None:
-            print("Window handle not found, exiting.")
-            raise SystemExit
+            raise RuntimeError("Window handle not found, exiting.")
         self.timer.singleShot(2000, self.checkApp)
     
     def closeEvent(self, a0):
@@ -263,8 +263,8 @@ class MainWindow(QWidget):
 
 
 class BackgroundWidget(QLabel):
-    DEFAULT_COLOR = "lightblue"
-    IMAGE_PATH = "img/bg_image.png"
+    DEFAULT_COLOR = "#366778"
+    IMAGE_PATH = os.path.join("img", "bg_image.png")
     BORDER_RADIUS = 50
     def __init__(self, parent:QWidget):
         super().__init__(parent)
@@ -346,11 +346,14 @@ class PlainText(QLabel):
     
 
 class TrayIconWidget:
-    ICON_PATH = "img/icon.png"
     def __init__(self, manager:MainWindow=None):
         self.manager=manager
         self.app = QApplication(sys.argv)
-        self.tray_icon = QSystemTrayIcon(QIcon(self.ICON_PATH), self.app)
+
+        if not os.path.exists(ICON_PATH) or not os.path.isfile(ICON_PATH):
+            raise FileNotFoundError(f"Icon file not found: {ICON_PATH}")
+
+        self.tray_icon = QSystemTrayIcon(QIcon(ICON_PATH), self.app)
         self.tray_icon.setToolTip("Joat917's Toolkit")
 
         menu = self.menu = QMenu()
@@ -391,13 +394,3 @@ class TrayIconWidget:
         self.app.quit()
         self.manager.app.closeAllWindows()
         self.manager.app.quit()
-        
-if __name__ == "__main__":
-    from start_check import check_started
-    app = QApplication(sys.argv)
-    check_started()
-    MainWindow.TITLE = "Main Window Test"
-    window = MainWindow(app=app)
-    window.show()
-    sys.exit(app.exec_())
-

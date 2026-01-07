@@ -99,8 +99,8 @@ class PushButton(QPushButton):
         super().__init__(text, parent)
         self.setFixedSize(width, height)
         self.fontSize = fontSize
-        self.text_color = text_color
-        self.bg_color = bg_color
+        self.text_color = QColor(text_color)
+        self.bg_color = QColor(bg_color)
         if hover_color is None:
             hover_color = bg_color.lighter(110)
         self.hover_color = hover_color
@@ -190,49 +190,3 @@ class PushButton(QPushButton):
         painter.drawText(self.rect(), Qt.AlignCenter, self.text())
 
         painter.end()
-
-    
-if __name__ == "__main__":
-    from main_window import MainWindow, WidgetBox
-    from start_check import check_started
-    app = QApplication(sys.argv)
-    check_started()
-    MainWindow.TITLE = "Switches Test"
-    window = MainWindow(app=app)
-    window.addWidget(WidgetBox(
-        window, 
-        title="Switch Buttons",
-        widgets=[SwitchButton(
-            onchange=lambda state: print("State changed to", state),
-            onturnon=lambda: print("Turned ON"),
-            onturnoff=lambda: print("Turned OFF")
-        ), 
-        SwitchButton()
-        ]
-    ))
-    window.addWidget(WidgetBox(
-        window,
-        title="Colored Buttons",
-        widgets=[
-        PushButton(
-            text="Colored Button #1",
-            width=240,
-            bg_color=QColor(100, 200, 100), 
-            onclick=lambda: print("Colored Button #1 Clicked")
-        ), PushButton(
-            text="Colored Button #2",
-            width=240,
-            bg_color=QColor(200, 100, 150),
-            onclick=lambda: print("Colored Button #2 Clicked")
-        ), 
-        PushButton(
-            text="Colored Button #3",
-            width=240,
-            bg_color=QColor(150, 100, 200), 
-            onclick=lambda: print("Colored Button #3 Clicked")
-        )
-        ]
-    ))
-    window.show()
-    sys.exit(app.exec_())
-

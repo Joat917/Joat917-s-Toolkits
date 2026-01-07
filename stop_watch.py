@@ -96,6 +96,16 @@ class TubePainter:
 
 class TubeReader:
     def __init__(self):
+        for d in DIGITS.keys():
+            if not os.path.isfile(f'./img/digitTube{d}.png'):
+                raise FileNotFoundError(f'Image file for digit {d} not found.')
+        if not os.path.isfile('./img/digitTubeC.png'):
+            raise FileNotFoundError('Image file for colon not found.')
+        if not os.path.isfile('./img/digitTubeD.png'):
+            raise FileNotFoundError('Image file for dot not found.')
+        if not os.path.isfile('./img/digitTubeS.png'):
+            raise FileNotFoundError('Image file for space not found.')
+        
         self.pictures={d:QPixmap(f'./img/digitTube{d}.png') for d in DIGITS.keys()}
         self.pictures[':']=QPixmap('./img/digitTubeC.png')
         self.pictures['.']=QPixmap('./img/digitTubeD.png')
@@ -143,7 +153,7 @@ class StopWatchMainWindow(QWidget):
         # self.setStyleSheet("background-color:rgba(0,0,0,0.5);border-radius: 10px")
 
         layout=QHBoxLayout()
-        tubeReader=TubeReader()
+        tubeReader=TubeReader.constructor()
         for k in tubeReader.pictures:
             tubeReader.pictures[k]=tubeReader.pictures[k].scaled(50, 100)
         self.tubeunitsList=[
@@ -268,27 +278,3 @@ class StopWatchMainWindow(QWidget):
         self._timer.stop()
         self._timer = None
         return super().close()
-
-
-if __name__ == "__main__":
-    from main_window import MainWindow, WidgetBox
-    from switch_widgets import SwitchButton
-    from start_check import check_started
-    app = QApplication(sys.argv)
-    check_started()
-    MainWindow.TITLE = "StopWatch Test"
-    window = MainWindow(app=app)
-
-    stopwatch = []
-
-    window.addWidget(WidgetBox(
-        parent=window, 
-        title="Stopwatch", 
-        widgets=[SwitchButton(
-            onturnon=lambda: stopwatch.append(StopWatchMainWindow(window)), 
-            onturnoff=lambda: (stopwatch.pop().close() if stopwatch else None)
-        )]
-    ))
-
-    window.show()
-    sys.exit(app.exec_())

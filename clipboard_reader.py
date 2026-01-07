@@ -11,6 +11,8 @@ import pywintypes
 from PIL import Image, ImageDraw, ImageFont
 from PyQt5 import QtWidgets, QtGui, QtCore
 
+from base_import import WORKING_DIR, ICON_PATH
+
 known_formats = {
 	1: "CF_TEXT",
 	2: "CF_BITMAP",
@@ -215,6 +217,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 
 	def init_ui(self):
 		self.setWindowTitle('Clipboard Monitor')
+		self.setWindowIcon(QtGui.QIcon(ICON_PATH))
 
 		central = QtWidgets.QWidget()
 		self.setCentralWidget(central)
@@ -325,7 +328,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 
 
 def main():
-	settings = Settings()
+	settings = Settings(os.path.join(WORKING_DIR, "clipboard_reader_settings.json"))
 	settings.load_from_json()
 
 	app = QtWidgets.QApplication(sys.argv)

@@ -1,6 +1,6 @@
 from base_import import *
 from main_window import WidgetBox, MainWindow, PlainText
-from switch_widgets import SwitchButton
+from switch_widgets import SwitchButton, PushButton
 from popup_window import ConfirmationPopup
 
 
@@ -15,7 +15,7 @@ class DropRunner(WidgetBox):
 
         self.label = QLabel("Drop Pythons Here", self)
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setFont(QFont(FONT_NAME, 10))
+        self.label.setFont(QFont(FONT_NAME, 10, QFont.Bold))
         self.label.setStyleSheet(f"color: {PlainText.TEXT_COLOR};")
 
         self.debug_mode_sublayout = QHBoxLayout()
@@ -35,6 +35,12 @@ class DropRunner(WidgetBox):
 
         self.master.trayWidget.add_action("Restart", self.restartEverything)
 
+        self.last_dropped_files = []
+        self.last_dropped_max_count = 3
+        self.last_dropped_sublayout = QVBoxLayout()
+        self._last_dropped_widgets = []
+        self.layout.addLayout(self.last_dropped_sublayout)
+
     def setDebugMode(self, debug: bool):
         self.debug_mode = debug
         if self.debug_mode:
@@ -49,6 +55,8 @@ class DropRunner(WidgetBox):
     def dropEvent(self, event: QDropEvent):
         urls = event.mimeData().urls()
         file_paths = [url.toLocalFile() for url in urls]
+        _additions_to_last_dropped = []
+
         for file_path in file_paths:
             if not os.path.exists(file_path):
                 self.push_message("File not exists: " + file_path)
@@ -66,33 +74,86 @@ class DropRunner(WidgetBox):
                 _loop_counter += 1
                 if _loop_counter > 1000:
                     break
+            
             if file_path.endswith('.py'):
                 self.run(file_path, without_console=False)
+                _additions_to_last_dropped.append(file_path)
             elif file_path.endswith('.pyw'):
                 self.run(file_path, without_console=True)
+                _additions_to_last_dropped.append(file_path)
             else:
                 self.push_message("Not a Python script: " + file_path)
             
+        _additions_to_last_dropped=_additions_to_last_dropped[:self.last_dropped_max_count]
+        for file_path in _additions_to_last_dropped:
+            if file_path in self.last_dropped_files:
+                self.last_dropped_files.remove(file_path)
+        self.last_dropped_files=_additions_to_last_dropped+self.last_dropped_files
+        self.last_dropped_files=self.last_dropped_files[:self.last_dropped_max_count]
+        self._refresh_last_dropped_display()
+            
         event.acceptProposedAction()
 
+    def _refresh_last_dropped_display(self):
+        for qobj in self.last_dropped_sublayout.children():
+            self.last_dropped_sublayout.removeWidget(qobj)
+            qobj.deleteLater()
+        for w in self._last_dropped_widgets:
+            w.onclick=None
+            w.close()
+        self._last_dropped_widgets.clear()
+        
+        for file_path in self.last_dropped_files:
+            def _callback(*, file_path=file_path):
+                if not os.path.exists(file_path):
+                    self.push_message("File not exists: " + file_path)
+                    return
+                if not os.path.isfile(file_path):
+                    self.push_message("Not a file: " + file_path)
+                    return
+                if file_path.endswith('.py'):
+                    self.run(file_path, without_console=False)
+                elif file_path.endswith('.pyw'):
+                    self.run(file_path, without_console=True)
+                else:
+                    self.push_message("Not a Python script: " + file_path)
+                return
+            
+            text = os.path.basename(file_path)
+            _suffix = os.path.dirname(file_path).replace('\\', '/')
+            if len(text) + len(_suffix) > 25:
+                _suffix = '...' + _suffix[-(30 - len(text) - 3):]
+            text += ' @ ' + _suffix
+
+            label = PushButton(
+                text=text,
+                parent=self,
+                width=450,
+                height=40, 
+                bg_color=QColor(100, 100, 100),
+                alpha=0,  
+                onclick=_callback
+            )
+            self.last_dropped_sublayout.addWidget(label)
+            self._last_dropped_widgets.append(label)
+
     def run(self, script_path: str, without_console: bool=False):
-        cwd = os.getcwd()
         if self.debug_mode:
             os.chdir(os.path.dirname(script_path))
             subprocess.Popen(f'cmd /k ""{self.python_path}" "{script_path}""', creationflags=subprocess.CREATE_NEW_CONSOLE)
-            os.chdir(cwd)
+            os.chdir(WORKING_DIR)
         else:
             app_path = self.pythonw_path if without_console else self.python_path
             def callbackfunc():
                 try:
                     os.chdir(os.path.dirname(script_path))
                     proc=subprocess.Popen([app_path, script_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
-                    os.chdir(cwd)
+                    os.chdir(WORKING_DIR)
                     ret=proc.wait()
                 except KeyboardInterrupt:
                     ret = -1073741510
                 finally:
-                    os.chdir(cwd)
+                    os.chdir(WORKING_DIR)
                 if ret>=0x80000000:
                     ret-=0x1_00000000
                 message = f'Program "{script_path}" exits with return value {ret}(0x{ret&0xffffffff:08X})'
@@ -116,24 +177,12 @@ class DropRunner(WidgetBox):
                 time.sleep(0.05)
             if not popup.user_response:
                 return
-        os.chdir(os.path.dirname(__file__))
+        os.chdir(PROJECT_DIR)
         subprocess.Popen(sys.orig_argv[:]+['--forceKillAllExistingInstances'], creationflags=subprocess.CREATE_NEW_CONSOLE)
         # this process will be killed by the newly started process
+        time.sleep(0.01)
+        os.chdir(WORKING_DIR)
 
     def close(self):
         self.master.trayWidget.remove_action("Restart")
         return super().close()
-
-if __name__ == "__main__":
-    from main_window import MainWindow, WidgetBox
-    from start_check import check_started
-    app = QApplication(sys.argv)
-    check_started()
-    MainWindow.TITLE = "Drop Runner Test"
-    window = MainWindow(app=app)
-
-    drop_runner = DropRunner(window)
-    window.addWidget(drop_runner)
-
-    window.show()
-    sys.exit(app.exec_())
