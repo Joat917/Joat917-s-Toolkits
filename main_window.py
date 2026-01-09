@@ -71,9 +71,15 @@ class MainWindow(QWidget):
         self.timer = QTimer(self)
         self.timer.singleShot(1000, self.checkMessage)
         self.timer.singleShot(1000, self.checkApp)
-        self.drag_position = None # 鼠标拖动位置相对窗口左上角的偏移
+
         self.hidden=False # 是否收缩进屏幕右侧
+
+        self.drag_position = None # 鼠标拖动位置相对窗口左上角的偏移
+        self._mouse_animation_timer = None # 窗口位置动画定时器
+        self._mouse_animation_countleft = 0 # 鼠标拖动动画剩余帧数
+        
         self._keyboard_moving_timer = None # 非鼠标导致窗口隐藏状态发生更改的动画
+        self._keyboard_moving_countleft = 0 # 键盘隐藏动画剩余帧数
 
     def addWidget(self, widget):
         self.layout.addWidget(widget)
@@ -119,6 +125,7 @@ class MainWindow(QWidget):
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.LeftButton and self.drag_position is not None:
+            self._stop_moving_animation()
             # 将窗口移动到鼠标位置和初始偏移量之间
             mouse_pos = event.globalPos() - self.drag_position
             desired_pos = self.position_1
@@ -132,43 +139,54 @@ class MainWindow(QWidget):
             self.move(target_pos)
             event.accept()
 
+    def _stop_moving_animation(self, *, stopmouse=True, stopkeyboard=True):
+        if stopmouse and self._mouse_animation_timer is not None:
+            self._mouse_animation_timer.stop()
+            self._mouse_animation_timer.timeout.disconnect()
+            self._mouse_animation_timer = None
+            self._mouse_animation_countleft = 0
+        if stopkeyboard and self._keyboard_moving_timer is not None:
+            self._keyboard_moving_timer.stop()
+            self._keyboard_moving_timer.timeout.disconnect()
+            self._keyboard_moving_timer = None
+            self._keyboard_moving_countleft = 0
+
+    def _mouse_animation_step(self):
+        if self.drag_position is not None: # 窗口正在被拖动
+            self._stop_moving_animation()
+            return
+        if self._mouse_animation_countleft <= 0:
+            self._settle_hidden_position()
+            return
+        self._mouse_animation_countleft -= 1
+
+        current_pos = self.pos()
+        target_pos = self.position_1 if not self.hidden else self.position_2
+        delta = target_pos - current_pos
+        distance = math.hypot(delta.x(), delta.y())
+        if distance < 1 or self._mouse_animation_countleft <= 0:
+            self._settle_hidden_position()
+            return
+        step = QPointF(delta.x() * self.K, delta.y() * self.K)
+        new_pos = current_pos + step.toPoint()
+        self.move(new_pos)
+
     def mouseReleaseEvent(self, event):
         self.drag_position = None
-
         if self.hidden:
             self.hidden = False
         elif self.pos().x() > self.position_1.x() + self.WIDTH / 6:
             self.hidden = True
-
-        # 动画回到停靠位置
-        def update_position():
-            if self.drag_position is not None:
-                self.animation_timer.stop()
-                return
-            current_pos = self.pos()
-            target_pos = self.position_1 if not self.hidden else self.position_2
-            delta = target_pos - current_pos
-            distance = math.hypot(delta.x(), delta.y())
-            if distance < 1:
-                self.move(target_pos)
-                self.animation_timer.stop()
-                self._settle_hidden_position()
-                return
-            step = QPointF(delta.x() * self.K, delta.y() * self.K)
-            new_pos = current_pos + step.toPoint()
-            self.move(new_pos)
-        self.animation_timer = QTimer(self)
-        self.animation_timer.timeout.connect(update_position)
-        self.animation_timer.start(16)  # 大约60 FPS
-
+        self._stop_moving_animation()
+        self._mouse_animation_timer = QTimer(self)
+        self._mouse_animation_timer.timeout.connect(self._mouse_animation_step)
+        self._mouse_animation_countleft = 60  # 最多60帧
+        self._mouse_animation_timer.start(16)  # 大约60 FPS
         event.accept()
 
     def _settle_hidden_position(self):
         self.drag_position = None
-        if self._keyboard_moving_timer is not None:
-            self._keyboard_moving_timer.stop()
-            self._keyboard_moving_timer.timeout.disconnect()
-        self._keyboard_moving_timer = None
+        self._stop_moving_animation()
         if self.hidden:
             self.move(self.position_2)
         else:
@@ -176,38 +194,36 @@ class MainWindow(QWidget):
 
     def _keyboard_moving_updater(self):
         if self.drag_position is not None:
-            if self._keyboard_moving_timer is not None:
-                self._keyboard_moving_timer.stop()
-                self._keyboard_moving_timer.timeout.disconnect()
-                self._keyboard_moving_timer = None
+            self._stop_moving_animation()
             return
+        if self._mouse_animation_timer is not None:
+            self._stop_moving_animation(stopmouse=False, stopkeyboard=True)
+            return
+        if self._keyboard_moving_countleft <= 0:
+            self._settle_hidden_position()
+            return
+        self._keyboard_moving_countleft -= 1
+
         current_pos = self.pos()
         target_pos = self.position_1 if not self.hidden else self.position_2
         delta = target_pos - current_pos
         distance = math.hypot(delta.x(), delta.y())
-        if distance < 1:
-            self.move(target_pos)
-            if self._keyboard_moving_timer is not None:
-                self._keyboard_moving_timer.stop()
-                self._keyboard_moving_timer.timeout.disconnect()
-                self._keyboard_moving_timer = None
-            return
         step = QPointF(delta.x() * self.K, delta.y() * self.K)
+        if distance < 1 or step.isNull():
+            self._settle_hidden_position()
+            return
         new_pos = current_pos + step.toPoint()
         self.move(new_pos)
 
     def refreshHiddenState(self, hidden: bool):
-        if self._keyboard_moving_timer is not None:
-            self._keyboard_moving_timer.stop()
-            self._keyboard_moving_timer.timeout.disconnect()
-            self._keyboard_moving_timer = None
-            self._settle_hidden_position()
         if not hidden and self.hidden:
             self.hidden = hidden
             self.activateCallback()
         self.hidden = hidden
+        self._stop_moving_animation()
         self._keyboard_moving_timer = QTimer(self)
         self._keyboard_moving_timer.timeout.connect(self._keyboard_moving_updater)
+        self._keyboard_moving_countleft = 60
         self._keyboard_moving_timer.start(16)
 
     def activateCallback(self):
@@ -259,11 +275,7 @@ class MainWindow(QWidget):
         self.timer.singleShot(2000, self.checkApp)
     
     def closeEvent(self, a0):
-        self.animation_timer.stop()
-        self.animation_timer.timeout.disconnect()
-        if self._keyboard_moving_timer is not None:
-            self._keyboard_moving_timer.stop()
-            self._keyboard_moving_timer.timeout.disconnect()
+        self._stop_moving_animation()
         self.hotkey_callbacks.clear()
         self.globalKeyboardListener.press_callbacks.clear()
         self.globalKeyboardListener.release_callbacks.clear()
