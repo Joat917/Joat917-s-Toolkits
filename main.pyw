@@ -109,5 +109,12 @@ if __name__ == "__main__":
                 f.write(traceback.format_exc())
                 f.write("\n\n")
             ret = 1
-    sys.exit(ret)
+    
+    del app
 
+    print("Exiting...")
+
+    # Ensure all resources are cleaned up properly
+    # sys.exit(ret)
+    # Just joking
+    os._exit(ret)
