@@ -83,19 +83,23 @@ class KeyDisplay(QWidget):
     def close(self):
         if self.animation is not None:
             self.animation.stop()
+            self.animation.deleteLater()
             self.animation = None
         if self.animation2 is not None:
             self.animation2.stop()
+            self.animation2.deleteLater()
             self.animation2 = None
         self.animation_level=float('inf')
         if self.manager is not None:
             self.manager._kill(self)
             self.manager = None
+        self.deleteLater()
         super().close()
 
     def checkExistence(self):
         if self.manager is None or self.manager.master is None:
             self.close()
+            self.deleteLater()
             return
         QTimer.singleShot(200, self.checkExistence)
 
@@ -150,8 +154,9 @@ class KeyDisplayerManager(QObject):
         KeyDisplay.width_tot=screen_geometry.width()-KeyDisplay.base_x
         KeyDisplay.height_tot=screen_geometry.height()-KeyDisplay.base_y
 
-        self.master.globalKeyboardListener.press_callbacks.append(self.callbackPress)
-        self.master.globalKeyboardListener.release_callbacks.append(self.callbackRelease)
+        if self.master.globalKeyboardListener is not None:
+            self.master.globalKeyboardListener.press_callbacks.append(self.callbackPress)
+            self.master.globalKeyboardListener.release_callbacks.append(self.callbackRelease)
         self.master.trayWidget.add_action("Key&Mouse: Release All", self.releaseAll)
         self.master.trayWidget.add_action("Key&Mouse: Remove All", self.removeAll)
 
@@ -222,15 +227,18 @@ class KeyDisplayerManager(QObject):
     def close(self):
         for display in self.displays:
             display.close()
+            display.deleteLater()
         self.displays.clear()
         self.boxes.clear()
         self.texts.clear()
 
-        self.master.globalKeyboardListener.press_callbacks.remove(self.callbackPress)
-        self.master.globalKeyboardListener.release_callbacks.remove(self.callbackRelease)
+        if self.master.globalKeyboardListener is not None:
+            self.master.globalKeyboardListener.press_callbacks.remove(self.callbackPress)
+            self.master.globalKeyboardListener.release_callbacks.remove(self.callbackRelease)
         self.master.trayWidget.remove_action("Key&Mouse: Release All")
         self.master.trayWidget.remove_action("Key&Mouse: Remove All")
         self.master = None
+        self.deleteLater()
 
 
     def releaseAll(self):

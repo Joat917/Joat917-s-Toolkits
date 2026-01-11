@@ -64,11 +64,13 @@ class ConfirmationPopup(PopupWindow):
         # run callback in main thread
         self.callback(self.user_response)
         self.close()
+        self.deleteLater()
 
     def no_clicked(self):
         self.user_response = False
         self.callback(self.user_response)
         self.close()
+        self.deleteLater()
 
 
 class FadingPopup(QWidget):
@@ -127,3 +129,6 @@ class FadingPopup(QWidget):
         self.opacity_animation.start()
         self.opacity_animation.finished.connect(self.close)
 
+    def closeEvent(self, event):
+        super().closeEvent(event)
+        self.deleteLater()

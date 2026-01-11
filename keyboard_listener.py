@@ -108,7 +108,7 @@ class KeyboardListenerSignalPatched(KeyboardListener, QObject):
         self.mouseListener.stop()
         self.signalPress.disconnect()
         self.signalRelease.disconnect()
-        super(QObject, self).close()
+        self.deleteLater()
 
 
 if __name__=="__main__":

@@ -59,8 +59,9 @@ class ClickerWidget(WidgetBox):
         self.mouseCtrl=pynput.mouse.Controller()
         self._mouse_down = False
 
-        self.master.globalKeyboardListener.press_callbacks.append(self.start_clicking_callback)
-        self.master.globalKeyboardListener.release_callbacks.append(self.stop_clicking_callback)
+        if self.master.globalKeyboardListener is not None:
+            self.master.globalKeyboardListener.press_callbacks.append(self.start_clicking_callback)
+            self.master.globalKeyboardListener.release_callbacks.append(self.stop_clicking_callback)
 
         self.toggle_enabled(False)
 
@@ -124,8 +125,12 @@ class ClickerWidget(WidgetBox):
 
     def closeEvent(self, a0):
         self.stop_clicking()
-        self.master.globalKeyboardListener.press_callbacks.remove(self.start_clicking_callback)
-        self.master.globalKeyboardListener.release_callbacks.remove(self.stop_clicking_callback)
+        if self.master.globalKeyboardListener is not None:
+            self.master.globalKeyboardListener.press_callbacks.remove(self.start_clicking_callback)
+            self.master.globalKeyboardListener.release_callbacks.remove(self.stop_clicking_callback)
         self.click_timer.timeout.disconnect()
+        self.click_timer.stop()
+        self.click_timer.deleteLater()
+        self.deleteLater()
         return super().closeEvent(a0)
 

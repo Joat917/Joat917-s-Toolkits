@@ -52,6 +52,8 @@ class SwitchButton(QLabel):
         else:
             self.slider_position = self.target_position
             self.animation_timer.stop()  # 到达目标位置，停止动画
+            self.animation_timer.timeout.disconnect()
+            self.animation_timer.deleteLater()
             self.animation_timer = None
             self.animation_repeat_count = 0
         self.update()  # 触发重绘
@@ -163,6 +165,8 @@ class PushButton(QPushButton):
         if d_red == 0 and d_green == 0 and d_blue == 0:
             self.current_color = self.target_color
             self.color_transition_timer.stop()
+            self.color_transition_timer.timeout.disconnect()
+            self.color_transition_timer.deleteLater()
             self.color_transition_timer = None
         else:
             new_r = self.current_color.red() + d_red

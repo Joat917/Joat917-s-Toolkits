@@ -105,6 +105,7 @@ class ClipboardWidget(WidgetBox):
             droprunner=DropRunner(self.master)
             droprunner.run(os.path.abspath(os.path.join(PROJECT_DIR, 'clipboard_reader.py')), without_console=True)
             droprunner.close()
+            droprunner.deleteLater()
 
     def refresh_clipboard_state(self):
         try:
@@ -116,6 +117,7 @@ class ClipboardWidget(WidgetBox):
     def closeEvent(self, event):
         self.timer.timeout.disconnect()
         self.timer.stop()
+        self.timer.deleteLater()
         super().closeEvent(event)
 
 

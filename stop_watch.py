@@ -276,5 +276,8 @@ class StopWatchMainWindow(QWidget):
             self._master.hotkey_callbacks.pop(self._hotkey, None)
             self._master = None
         self._timer.stop()
+        self._timer.timeout.disconnect()
+        self._timer.deleteLater()
         self._timer = None
+        self.deleteLater()
         return super().close()

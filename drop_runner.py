@@ -101,6 +101,7 @@ class DropRunner(WidgetBox):
         for w in self._last_dropped_widgets:
             w.onclick=None
             w.close()
+            w.deleteLater()
         self._last_dropped_widgets.clear()
         
         for file_path in self.last_dropped_files:
@@ -185,4 +186,5 @@ class DropRunner(WidgetBox):
 
     def close(self):
         self.master.trayWidget.remove_action("Restart")
+        self.deleteLater()
         return super().close()

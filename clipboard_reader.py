@@ -326,6 +326,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 		self.save_geometry()
 		self.timer.timeout.disconnect()
 		self.timer.stop()
+		self.timer.deleteLater()
 		super().closeEvent(event)
 
 
