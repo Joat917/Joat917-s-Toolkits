@@ -7,8 +7,10 @@ class MainWindow(QWidget):
     WIDTH = 600
     HEIGHT = 1000
     PADDING = 20
-    K=0.1 # 回弹系数
+    K=0.01 # 回弹系数
     R=100 # 回弹半径
+    TOTAL_ANIMATION_FRAMES = 60
+    TOTAL_ANIMATION_TIME_MS = 300
     TITLE = "Joat917's Toolkit"
     def __init__(self, app:QApplication):
         super().__init__()
@@ -29,7 +31,8 @@ class MainWindow(QWidget):
         self.bgwidget=BackgroundWidget(self)
         self.trayWidget=TrayIconWidget(self)
 
-        self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], auto_start=True, parent=self)
+        # self.globalKeyboardListener = None
+        self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], parent=self, auto_start=True)
         self.globalKeyboardListener.press_callbacks.append(self._globalHotkeyHandler)
         self.hotkey_callbacks = {} # name: callback
 
@@ -143,11 +146,13 @@ class MainWindow(QWidget):
         if stopmouse and self._mouse_animation_timer is not None:
             self._mouse_animation_timer.stop()
             self._mouse_animation_timer.timeout.disconnect()
+            self._mouse_animation_timer.deleteLater()
             self._mouse_animation_timer = None
             self._mouse_animation_countleft = 0
         if stopkeyboard and self._keyboard_moving_timer is not None:
             self._keyboard_moving_timer.stop()
             self._keyboard_moving_timer.timeout.disconnect()
+            self._keyboard_moving_timer.deleteLater()
             self._keyboard_moving_timer = None
             self._keyboard_moving_countleft = 0
 
@@ -164,11 +169,18 @@ class MainWindow(QWidget):
         target_pos = self.position_1 if not self.hidden else self.position_2
         delta = target_pos - current_pos
         distance = math.hypot(delta.x(), delta.y())
-        if distance < 1 or self._mouse_animation_countleft <= 0:
+        if distance <= 2 or self._mouse_animation_countleft <= 0:
             self._settle_hidden_position()
             return
-        step = QPointF(delta.x() * self.K, delta.y() * self.K)
-        new_pos = current_pos + step.toPoint()
+        
+        # 以正弦函数轨迹移动
+        # next_delta_proportion = (1-math.cos(self._mouse_animation_countleft/self.TOTAL_ANIMATION_FRAMES*(math.pi / 2)))/(1-math.cos((self._mouse_animation_countleft+1)/self.TOTAL_ANIMATION_FRAMES*(math.pi / 2)))
+        # 以抛物线轨迹移动
+        # next_delta_proportion = (self._mouse_animation_countleft)**2/(self._mouse_animation_countleft+1)**2
+        # 以双曲函数轨迹移动
+        next_delta_proportion = (math.cosh(self.K*self._mouse_animation_countleft/self.TOTAL_ANIMATION_FRAMES)-1)/(math.cosh(self.K*(self._mouse_animation_countleft+1)/self.TOTAL_ANIMATION_FRAMES)-1)
+        new_pos = QPointF(target_pos.x() - delta.x() * next_delta_proportion,
+                          target_pos.y() - delta.y() * next_delta_proportion).toPoint()
         self.move(new_pos)
 
     def mouseReleaseEvent(self, event):
@@ -180,8 +192,8 @@ class MainWindow(QWidget):
         self._stop_moving_animation()
         self._mouse_animation_timer = QTimer(self)
         self._mouse_animation_timer.timeout.connect(self._mouse_animation_step)
-        self._mouse_animation_countleft = 60  # 最多60帧
-        self._mouse_animation_timer.start(16)  # 大约60 FPS
+        self._mouse_animation_countleft = self.TOTAL_ANIMATION_FRAMES
+        self._mouse_animation_timer.start(self.TOTAL_ANIMATION_TIME_MS//self.TOTAL_ANIMATION_FRAMES)
         event.accept()
 
     def _settle_hidden_position(self):
@@ -208,11 +220,16 @@ class MainWindow(QWidget):
         target_pos = self.position_1 if not self.hidden else self.position_2
         delta = target_pos - current_pos
         distance = math.hypot(delta.x(), delta.y())
-        step = QPointF(delta.x() * self.K, delta.y() * self.K)
-        if distance < 1 or step.isNull():
+        # next_delta_proportion = (1-math.cos(self._keyboard_moving_countleft/self.TOTAL_ANIMATION_FRAMES*(math.pi / 2)))/(1-math.cos((self._keyboard_moving_countleft+1)/self.TOTAL_ANIMATION_FRAMES*(math.pi / 2)))
+        # next_delta_proportion = (self._keyboard_moving_countleft)**2/(self._keyboard_moving_countleft+1)**2
+        next_delta_proportion = (math.cosh(self.K*self._keyboard_moving_countleft/self.TOTAL_ANIMATION_FRAMES)-1)/(math.cosh(self.K*(self._keyboard_moving_countleft+1)/self.TOTAL_ANIMATION_FRAMES)-1)
+        new_pos = QPointF(target_pos.x() - delta.x() * next_delta_proportion,
+                          target_pos.y() - delta.y() * next_delta_proportion).toPoint()
+        
+        step = new_pos - current_pos
+        if distance <=2 or step.isNull():
             self._settle_hidden_position()
             return
-        new_pos = current_pos + step.toPoint()
         self.move(new_pos)
 
     def refreshHiddenState(self, hidden: bool):
@@ -223,8 +240,8 @@ class MainWindow(QWidget):
         self._stop_moving_animation()
         self._keyboard_moving_timer = QTimer(self)
         self._keyboard_moving_timer.timeout.connect(self._keyboard_moving_updater)
-        self._keyboard_moving_countleft = 60
-        self._keyboard_moving_timer.start(16)
+        self._keyboard_moving_countleft = self.TOTAL_ANIMATION_FRAMES
+        self._keyboard_moving_timer.start(self.TOTAL_ANIMATION_TIME_MS//self.TOTAL_ANIMATION_FRAMES)
 
     def activateCallback(self):
         self.refreshHiddenState(False)
@@ -277,9 +294,12 @@ class MainWindow(QWidget):
     def closeEvent(self, a0):
         self._stop_moving_animation()
         self.hotkey_callbacks.clear()
-        self.globalKeyboardListener.press_callbacks.clear()
-        self.globalKeyboardListener.release_callbacks.clear()
-        self.globalKeyboardListener.close()
+        if self.globalKeyboardListener is not None:
+            self.globalKeyboardListener.press_callbacks.clear()
+            self.globalKeyboardListener.release_callbacks.clear()
+            self.globalKeyboardListener.close()
+            self.globalKeyboardListener.deleteLater()
+        self.deleteLater()
         return super().closeEvent(a0)
     
     @property
@@ -417,5 +437,10 @@ class TrayIconWidget:
 
     def exit(self):
         self.app.quit()
-        self.manager.app.closeAllWindows()
-        self.manager.app.quit()
+        self.app.deleteLater()
+        self.manager.close()
+        self.manager.deleteLater()
+        main_app=self.manager.app
+        main_app.closeAllWindows()
+        main_app.quit()
+        print("Exiting application...")
