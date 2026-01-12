@@ -93,7 +93,10 @@ class KeyDisplay(QWidget):
         if self.manager is not None:
             self.manager._kill(self)
             self.manager = None
-        self.deleteLater()
+        try:
+            self.deleteLater()
+        except RuntimeError:
+            pass
         super().close()
 
     def checkExistence(self):
@@ -144,6 +147,7 @@ class KeyDisplay(QWidget):
 
 class KeyDisplayerManager(QObject):
     def __init__(self, master:MainWindow):
+        super().__init__()
         self.master = master
 
         KeyDisplay.screen_geometry = screen_geometry = QApplication.desktop().screenGeometry()
@@ -227,7 +231,6 @@ class KeyDisplayerManager(QObject):
     def close(self):
         for display in self.displays:
             display.close()
-            display.deleteLater()
         self.displays.clear()
         self.boxes.clear()
         self.texts.clear()
@@ -238,7 +241,10 @@ class KeyDisplayerManager(QObject):
         self.master.trayWidget.remove_action("Key&Mouse: Release All")
         self.master.trayWidget.remove_action("Key&Mouse: Remove All")
         self.master = None
-        self.deleteLater()
+        try:
+            self.deleteLater()
+        except RuntimeError:
+            pass
 
 
     def releaseAll(self):
