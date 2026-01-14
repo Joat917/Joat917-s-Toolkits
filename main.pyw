@@ -5,9 +5,68 @@ from stop_watch import StopWatchMainWindow
 from switch_widgets import SwitchButton, PushButton
 from drop_runner import DropRunner
 from keyboard_displayer import KeyDisplayerManager
-from popup_window import FadingPopup
 from clickclick_clicker import ClickerWidget
 from clipboard_widget import ClipboardWidget
+
+class UtilitiesWidget(WidgetBox):
+    def __init__(self, master:MainWindow):
+        super().__init__(parent=master, title="Utilities")
+        self.master = master
+        self.keyboard_manager=[]
+        self.stopwatch=[]
+
+        self.inline_calculator_button = PushButton(
+            onclick=self.droprunner_callback, 
+            text="Inline Calculator", 
+            width=240, 
+            bg_color=QColor(100, 150, 250)
+        )
+
+        self.keyboard_displayer_button = SwitchButton(
+            onturnon=lambda: self.keyboard_manager.append(KeyDisplayerManager(self.master)), 
+            onturnoff=lambda: (self.keyboard_manager.pop().close() if self.keyboard_manager else None), 
+            onchange=self.toggle_keyboard_displayer
+        )
+        self.keyboard_displayer_label = PlainText(
+            text="Keyboard Displayer is Disabled",
+            parent=self
+        )
+        self.stopwatch_button = SwitchButton(
+            onturnon=lambda: self.stopwatch.append(StopWatchMainWindow(self.master)),
+            onturnoff=lambda: (self.stopwatch.pop().close() if self.stopwatch else None), 
+            onchange=self.toggle_stopwatch
+        )
+        self.stopwatch_label = PlainText(
+            text="Stopwatch is Disabled",
+            parent=self
+        )
+
+        self.keyboard_displayer_sublayout = QHBoxLayout()
+        self.stopwatch_sublayout = QHBoxLayout()
+        self.keyboard_displayer_sublayout.addWidget(self.keyboard_displayer_button)
+        self.keyboard_displayer_sublayout.addWidget(self.keyboard_displayer_label)
+        self.stopwatch_sublayout.addWidget(self.stopwatch_button)
+        self.stopwatch_sublayout.addWidget(self.stopwatch_label)
+
+        self.layout.addWidget(self.inline_calculator_button)
+        self.layout.addLayout(self.keyboard_displayer_sublayout)
+        self.layout.addLayout(self.stopwatch_sublayout)
+
+    def droprunner_callback(self):
+        drop_runner.run(os.path.join(SETTINGS.project_dir, 'inline_calculator.py'))
+
+    def toggle_keyboard_displayer(self, state:bool):
+        if state:
+            self.keyboard_displayer_label.setText("Keyboard Displayer is Enabled")
+        else:
+            self.keyboard_displayer_label.setText("Keyboard Displayer is Disabled")
+
+    def toggle_stopwatch(self, state:bool):
+        if state:
+            self.stopwatch_label.setText("Stopwatch is Enabled")
+        else:
+            self.stopwatch_label.setText("Stopwatch is Disabled")
+    
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -15,45 +74,15 @@ if __name__ == "__main__":
         window = MainWindow(app=app)
 
         drop_runner = DropRunner(window)
-
-        window.addWidget(WidgetBox(
-            parent=window,
-            title="Inline Calculator",
-            widgets=[PushButton(
-                onclick=lambda: drop_runner.run(os.path.join(SETTINGS.project_dir, 'inline_calculator.py')), 
-                text="Inline Calculator", 
-                width=240, 
-                bg_color=QColor(100, 150, 250)
-            )]
-        ))
-
-        window.addWidget(ClipboardWidget(parent=window))
-
         window.addWidget(drop_runner)
         window.droprunner = drop_runner
 
+        window.addWidget(ClipboardWidget(parent=window))
+
+        window.addWidget(UtilitiesWidget(master=window))
+
         clicker = ClickerWidget(window)
         window.addWidget(clicker)
-
-        keyboard_manager = []
-        window.addWidget(WidgetBox(
-            parent=window, 
-            title="Keyboard Displayer", 
-            widgets=[SwitchButton(
-                onturnon=lambda: keyboard_manager.append(KeyDisplayerManager(window)), 
-                onturnoff=lambda: (keyboard_manager.pop().close() if keyboard_manager else None)
-            )]
-        ))
-
-        stopwatch = []
-        window.addWidget(WidgetBox(
-            parent=window, 
-            title="Stopwatch", 
-            widgets=[SwitchButton(
-                onturnon=lambda: stopwatch.append(StopWatchMainWindow(window)), 
-                onturnoff=lambda: (stopwatch.pop().close() if stopwatch else None)
-            )]
-        ))
 
         window.addWidget(WidgetBox(
             parent=window,

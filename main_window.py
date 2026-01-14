@@ -383,24 +383,21 @@ class BackgroundWidget(QLabel):
 
 class WidgetBox(QWidget):
     "一个盒子，里面可以自定义布局放置元素。盒子边界为圆角矩形，上边界中央显示标题"
-    def __init__(self, parent:QWidget=None, title:str="WidgetBox", widgets:list[QWidget]=[]):
+    def __init__(self, parent:QWidget, title:str="WidgetBox", widgets:list[QWidget]=[]):
         super().__init__(parent)
         self.master=parent
         self.layout=QVBoxLayout(self)
         self.title=QLabel(title, self)
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size_large, QFont.Bold))
-        self.title.setStyleSheet(f"color: {PlainText.TEXT_COLOR};")
+        self.title.setStyleSheet(f"color: {SETTINGS.text_color};")
         self.layout.addWidget(self.title)
-        self.content=QWidget(self)
-        self.content_layout=QVBoxLayout(self.content)
-        self.layout.addWidget(self.content)
         if widgets:
             for widget in widgets:
                 self.addWidget(widget)
 
     def addWidget(self, widget:QWidget):
-        self.content_layout.addWidget(widget)
+        self.layout.addWidget(widget)
         widget.show()
 
     # 绘制边框和圆角
@@ -417,14 +414,13 @@ class WidgetBox(QWidget):
         painter.end()
 
 class PlainText(QLabel):
-    TEXT_COLOR = 'white'
     def __init__(self, text:str="", parent:QWidget=None):
         super().__init__(parent)
         self.setText(text)
         self.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
         self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.setWordWrap(True)
-        self.setStyleSheet(f"color: {self.TEXT_COLOR};")
+        self.setStyleSheet(f"color: {SETTINGS.text_color};")
     
 
 class TrayIconWidget:

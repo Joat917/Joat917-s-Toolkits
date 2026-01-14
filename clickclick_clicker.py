@@ -6,14 +6,16 @@ from switch_widgets import SwitchButton
 
 class ClickerWidget(WidgetBox):
     def __init__(self, master:MainWindow):
-        super().__init__(parent=master, title="Clicker Settings")
+        super().__init__(parent=master, title="Clicker")
         self.master = master
 
         self.switch_button = SwitchButton(
-            onchange=self.toggle_enabled
+            onchange=self.toggle_enabled, 
+            parent=self
         )
         self.switch_button_label = PlainText(
-            text="Clicker is Disabled",
+            text="Clicker is Disabled", 
+            parent=self
         )
         self.enabling_sublayout = QHBoxLayout()
         self.enabling_sublayout.addWidget(self.switch_button)
@@ -22,10 +24,12 @@ class ClickerWidget(WidgetBox):
 
         self._mouse_button = pynput.mouse.Button.left
         self.mouse_button_switcher = SwitchButton(
-            onchange=self.toggle_mouse_button
+            onchange=self.toggle_mouse_button, 
+            parent=self
         )
         self.mouse_button_switcher_label = PlainText(
-            text="Mouse Button: Left",
+            text="Mouse Button: Left", 
+            parent=self
         )
         self.mouse_button_sublayout = QHBoxLayout()
         self.mouse_button_sublayout.addWidget(self.mouse_button_switcher)
@@ -34,12 +38,12 @@ class ClickerWidget(WidgetBox):
 
         self.interval_label = QLabel("Interval (ms):")
         self.interval_label.setFont(QFont(SETTINGS.font_name))
-        self.interval_label.setStyleSheet(f"color:{PlainText.TEXT_COLOR}")
+        self.interval_label.setStyleSheet(f"color:{SETTINGS.text_color}")
         self.interval_input = QSpinBox()
         self.interval_input.setRange(1, SETTINGS.clicker_max_interval)
         self.interval_input.setValue(SETTINGS.clicker_default_interval)
         self.interval_input.setFont(QFont(SETTINGS.font_name))
-        self.interval_input.setStyleSheet(f"color:{PlainText.TEXT_COLOR}")
+        self.interval_input.setStyleSheet(f"color:{SETTINGS.text_color}")
 
         self.interval_setting_sublayout = QHBoxLayout()
         self.interval_setting_sublayout.addWidget(self.interval_label)
@@ -47,7 +51,8 @@ class ClickerWidget(WidgetBox):
         self.layout.addLayout(self.interval_setting_sublayout)
 
         self.hotkey_guideline = PlainText(
-            text=f"Hold {SETTINGS.clicker_hotkey} to begin clicking",
+            text=f"Hold {SETTINGS.clicker_hotkey} to begin clicking", 
+            parent=self
         )
         self.layout.addWidget(self.hotkey_guideline)
 

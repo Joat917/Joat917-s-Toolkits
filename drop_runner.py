@@ -1,5 +1,5 @@
 from base_import import *
-from main_window import WidgetBox, MainWindow, PlainText
+from main_window import WidgetBox, MainWindow
 from switch_widgets import SwitchButton, PushButton
 from popup_window import ConfirmationPopup
 
@@ -16,13 +16,13 @@ class DropRunner(WidgetBox):
         self.label = QLabel("Drop Pythons Here", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size, QFont.Bold))
-        self.label.setStyleSheet(f"color: {PlainText.TEXT_COLOR};")
+        self.label.setStyleSheet(f"color: {SETTINGS.text_color};")
 
         self.debug_mode_sublayout = QHBoxLayout()
         self.switch = SwitchButton(self, onchange=self.setDebugMode)
         self.switchText = QLabel("Run mode", self)
         self.switchText.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
-        self.switchText.setStyleSheet(f"color: {PlainText.TEXT_COLOR};")
+        self.switchText.setStyleSheet(f"color: {SETTINGS.text_color};")
         self.debug_mode_sublayout.addWidget(self.switch)
         self.debug_mode_sublayout.addWidget(self.switchText)
 

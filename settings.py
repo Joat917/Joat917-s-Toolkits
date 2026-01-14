@@ -48,12 +48,13 @@ class Settings:
 
     def initialize(self):
         self.font_name = "STXINWEI"
+        self.text_color = "#FFFFFF"
         self.font_size = 10
         self.font_size_large = 12
 
         self.window_width = 600
         self.window_height = 1000
-        self.window_padding = 20
+        self.window_padding = 16
         self.window_title = "Joat917's Toolkit"
         self.window_welcome = "Hello there!"
         self.window_border_radius = 50

@@ -24,7 +24,7 @@ class ClipboardWidget(WidgetBox):
     def __init__(self, parent:MainWindow):
         super().__init__(
             parent=parent,
-            title="Clipboard Utilities"
+            title="Clipboard"
         )
         self.master=parent
         self.clear_format_button = PushButton(
@@ -58,7 +58,8 @@ class ClipboardWidget(WidgetBox):
             onclick=self.start_advanced_reader_callback
         )
         self.current_clipboard_state = PlainText(
-            text="<Not Initialized>",
+            text="<Not Initialized>", 
+            parent=self
         )
 
         self.addWidget(self.advanced_reader_button)
@@ -73,12 +74,15 @@ class ClipboardWidget(WidgetBox):
         
         self.addWidget(PlainText(
             text="Win+V : Clipboard History", 
+            parent=self
         ))
         self.addWidget(PlainText(
             text="Win+Shift+V : Advanced Paster", 
+            parent=self
         ))
         self.addWidget(PlainText(
             text="Win+Ctrl+Alt+V : Paste as Plain Text", 
+            parent=self
         ))
 
         self.timer = QTimer(self)
