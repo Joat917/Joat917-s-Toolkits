@@ -2,7 +2,23 @@ from base_import import *
 from main_window import MainWindow, WidgetBox, PlainText
 from switch_widgets import PushButton
 from drop_runner import DropRunner
-from popup_window import FadingPopup
+
+class ClipboardContext:
+    def __init__(self, error_callback=lambda e: None):
+        self.error_callback = error_callback
+    
+    def __enter__(self):
+        win32clipboard.OpenClipboard()
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            win32clipboard.CloseClipboard()
+        except pywintypes.error:
+            pass
+        if exc_type is not None:
+            self.error_callback(exc_value)
+            return True
 
 class ClipboardWidget(WidgetBox):
     def __init__(self, parent:MainWindow):
@@ -17,12 +33,18 @@ class ClipboardWidget(WidgetBox):
             bg_color=QColor(150, 100, 250),
             onclick=self.clear_format_callback
         )
-        # self.save_image_button = PushButton(
-        #     text="Save Clipboard Image", 
-        #     width=320, 
-        #     bg_color=QColor(200, 200, 100),
-        #     onclick=self.save_image_callback
-        # )
+        self.save_image_button = PushButton(
+            text="Save Clipboard Image", 
+            width=320, 
+            bg_color=QColor(200, 200, 100),
+            onclick=self.save_image_callback
+        )
+        self.reveal_in_explorer_button = PushButton(
+            text="Reveal File in Explorer", 
+            width=300, 
+            bg_color=QColor(150, 250, 100),
+            onclick=self.reveal_in_explorer_callback
+        )
         self.clear_content_button = PushButton(
             text="Clipboard Clear Content", 
             width=320, 
@@ -39,10 +61,15 @@ class ClipboardWidget(WidgetBox):
             text="<Not Initialized>",
         )
 
-        self.addWidget(self.clear_format_button)
-        self.addWidget(self.clear_content_button)
         self.addWidget(self.advanced_reader_button)
+        self.addWidget(self.clear_content_button)
+        self.addWidget(self.clear_format_button)
+        self.addWidget(self.save_image_button)
+        self.addWidget(self.reveal_in_explorer_button)
         self.addWidget(self.current_clipboard_state)
+
+        self.save_image_button.hide()
+        self.reveal_in_explorer_button.hide()
         
         self.addWidget(PlainText(
             text="Win+V : Clipboard History", 
@@ -63,39 +90,75 @@ class ClipboardWidget(WidgetBox):
         content = pyperclip.paste()
         if content:
             pyperclip.copy(content)
-            FadingPopup("Clipboard format cleared ~").fadeIn()
+            self.master.messages.put_nowait("Clipboard format cleared ~")
         else:
-            FadingPopup("No text in clipboard ~").fadeIn()
+            self.master.messages.put_nowait("No text in clipboard ~")
 
     def clear_content_callback(self):
         pyperclip.copy("")
-        FadingPopup("Clipboard cleared!").fadeIn()
+        self.master.messages.put_nowait("Clipboard cleared!")
 
     def save_image_callback(self):
-        try:
-            win32clipboard.OpenClipboard()
-            if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_DIB):
-                data = win32clipboard.GetClipboardData(win32clipboard.CF_DIB)
-                import io
-                from PIL import Image
-                bmpinfo = data[:40]
-                width = int.from_bytes(bmpinfo[4:8], 'little')
-                height = int.from_bytes(bmpinfo[8:12], 'little')
-                bpp = int.from_bytes(bmpinfo[14:16], 'little')
-                if bpp != 32:
-                    raise RuntimeError("Only 32bpp images are supported.")
-                img_data = data[40:]
-                img = Image.frombuffer('RGBA', (width, height), img_data, 'raw', 'BGRA', 0, 1)
-                save_path, _ = QFileDialog.getSaveFileName(self.parent, "Save Clipboard Image", "", "PNG Files (*.png);;All Files (*)")
-                if save_path:
-                    img.save(save_path, 'PNG')
-                    FadingPopup(f"Image saved to {save_path}").fadeIn()
-            else:
-                FadingPopup("No image data in clipboard ~").fadeIn()
-        except Exception as e:
-            FadingPopup(f"Failed to save image: {str(e)}").fadeIn()
-        finally:
-            win32clipboard.CloseClipboard()
+        def get_image_path():
+            save_path, _ = QFileDialog.getSaveFileName(
+                parent=self.master,
+                caption="Save Clipboard Image As",
+                filter="PNG Image (*.png);;All Files (*)",
+                directory=os.path.join(os.path.expanduser('~/Pictures'), 'clipboard_image.png')
+            )
+            return save_path
+
+        with ClipboardContext(error_callback=lambda e: self.master.messages.put_nowait(f"Failed to save image: {str(e)}")):
+            if not win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_DIB):
+                self.master.messages.put_nowait("No image data in clipboard ~")
+                return
+            
+            # from PNG data
+            format_png_id = win32clipboard.RegisterClipboardFormat('PNG')
+            if win32clipboard.IsClipboardFormatAvailable(format_png_id):
+                data = win32clipboard.GetClipboardData(format_png_id)
+                save_path = get_image_path()
+                if not save_path:
+                    return
+                
+                with open(save_path, 'wb') as f:
+                    f.write(data)
+                self.master.messages.put_nowait(f"Image saved to {save_path}")
+                return
+
+            # from DIB data
+            data = win32clipboard.GetClipboardData(win32clipboard.CF_DIB)
+            bmpinfo = data[:40]
+            width = int.from_bytes(bmpinfo[4:8], 'little')
+            height = int.from_bytes(bmpinfo[8:12], 'little')
+            bpp = int.from_bytes(bmpinfo[14:16], 'little')
+            if bpp != 32:
+                self.master.messages.put_nowait("Only 32bpp images are supported.")
+                return
+            img_data = data[40:]
+            img = Image.frombuffer('RGBA', (width, height), img_data, 'raw', 'BGRA', 0, 1)
+            save_path = get_image_path()
+            if not save_path:
+                return
+            img.save(save_path, 'PNG')
+            self.master.messages.put_nowait(f"Image saved to {save_path}")
+
+    def reveal_in_explorer_callback(self):
+        with ClipboardContext(error_callback=lambda e: self.master.messages.put_nowait(f"Failed to reveal file: {str(e)}")):
+            if not win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_HDROP):
+                self.master.messages.put_nowait("No file data in clipboard ~")
+                return
+            
+            file_paths = win32clipboard.GetClipboardData(win32clipboard.CF_HDROP)
+            if not file_paths:
+                self.master.messages.put_nowait("No file data in clipboard ~")
+                return
+            
+            file_path = file_paths[0]
+            if not os.path.exists(file_path):
+                self.master.messages.put_nowait(f"File does not exist: {file_path}")
+
+            subprocess.Popen(f'explorer /select,"{file_path}"')
 
     def start_advanced_reader_callback(self):
         if hasattr(self.master, 'droprunner') and isinstance(self.master.droprunner, DropRunner):
@@ -109,7 +172,42 @@ class ClipboardWidget(WidgetBox):
 
     def refresh_clipboard_state(self):
         try:
-            text = f"Current State: {get_clipboard_state()}"
+            state = get_clipboard_state()
+            text = f"Current State: {state}"
+            if state in ["Image", "PNG Image"]:
+                # self.clear_content_button.show()
+                self.clear_format_button.hide()
+                self.save_image_button.show()
+                self.reveal_in_explorer_button.hide()
+            elif state == "File":
+                # self.clear_content_button.show()
+                self.clear_format_button.hide()
+                self.save_image_button.hide()
+                self.reveal_in_explorer_button.show()
+            else:
+                self.clear_format_button.show()
+                self.save_image_button.hide()
+                self.reveal_in_explorer_button.hide()
+            # elif state == '<Empty>':
+            #     # self.clear_content_button.hide()
+            #     self.clear_format_button.hide()
+            #     self.save_image_button.hide()
+            #     self.reveal_in_explorer_button.hide()
+            # elif state in ["Rich Text", "Suspected Rich Text"]:
+            #     # self.clear_content_button.show()
+            #     self.clear_format_button.show()
+            #     self.save_image_button.hide()
+            #     self.reveal_in_explorer_button.hide()
+            # elif state == "Plain Text":
+            #     # self.clear_content_button.show()
+            #     self.clear_format_button.hide()
+            #     self.save_image_button.hide()
+            #     self.reveal_in_explorer_button.hide()
+            # else:
+            #     # self.clear_content_button.show()
+            #     self.clear_format_button.hide()
+            #     self.save_image_button.hide()
+            #     self.reveal_in_explorer_button.hide()
         except Exception as e:
             text = "<error>"
         self.current_clipboard_state.setText(text)
@@ -143,8 +241,10 @@ def get_clipboard_state()->str:
     }
     formats = {}
     error = ''
-    try:
-        win32clipboard.OpenClipboard()
+    def _error_callback(e):
+        nonlocal error
+        error = e.__class__.__name__
+    with ClipboardContext(error_callback=_error_callback):
         format_id = win32clipboard.EnumClipboardFormats(0)
         error_capacity=16
         while format_id != 0 and error_capacity>0:
@@ -168,10 +268,6 @@ def get_clipboard_state()->str:
                 error_capacity-=1
         if error_capacity<=0:
             error = '<Max tries exceeded>'
-    except Exception as e:
-        error = e.__class__.__name__
-    finally:
-        win32clipboard.CloseClipboard()
 
     if len(formats)==0:
         if error:
@@ -180,7 +276,7 @@ def get_clipboard_state()->str:
             result = "<Empty>"
     elif 1 in formats or 7 in formats or 13 in formats:
         # text
-        if 49403 in formats or 49282 in formats:
+        if 'HTML Format' in formats.values() or 'Rich Text Format' in formats.values():
             result = "Rich Text"
         elif set(formats.keys()).difference({1,7,13,16}):
             result = "Suspected Rich Text"
@@ -188,7 +284,7 @@ def get_clipboard_state()->str:
             result = "Plain Text"
     elif 2 in formats or 3 in formats or 6 in formats or 8 in formats or 14 in formats:
         result = "Image"
-        if 49289 in formats:
+        if 'PNG' in formats.values():
             result = "PNG Image"
     elif 15 in formats:
         result = "File"

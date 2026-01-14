@@ -14,6 +14,7 @@ import psutil
 import pyperclip
 import win32clipboard
 import pywintypes
+from PIL import Image
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
