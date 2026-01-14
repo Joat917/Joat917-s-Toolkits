@@ -4,14 +4,13 @@ from keyboard_listener import KeyboardListenerSignalPatched as KeyboardListener
 
 class MainWindow(QWidget):
     # 大小和停靠位置参数
-    WIDTH = 600
-    HEIGHT = 1000
-    PADDING = 20
-    K=0.01 # 回弹系数
-    R=100 # 回弹半径
-    TOTAL_ANIMATION_FRAMES = 60
-    TOTAL_ANIMATION_TIME_MS = 300
-    TITLE = "Joat917's Toolkit"
+    WIDTH = SETTINGS.window_width
+    HEIGHT = SETTINGS.window_height
+    PADDING = SETTINGS.window_padding
+    K=SETTINGS.window_animation_K # 回弹系数
+    R=SETTINGS.window_animation_R # 回弹半径
+    TOTAL_ANIMATION_FRAMES = SETTINGS.window_animation_frames
+    TOTAL_ANIMATION_TIME_MS = SETTINGS.window_animation_time_ms
     def __init__(self, app:QApplication):
         super().__init__()
         self.app=app
@@ -23,7 +22,7 @@ class MainWindow(QWidget):
         self.setGeometry(self.position_1.x(), self.position_1.y(), self.WIDTH, self.HEIGHT)
 
         self.setAcceptDrops(True)
-        self.setWindowTitle(self.TITLE)
+        self.setWindowTitle(SETTINGS.window_title)
         self.setStyleSheet("background-color: transparent;")
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -47,14 +46,14 @@ class MainWindow(QWidget):
         scroll.verticalScrollBar().setStyleSheet("""
             QScrollBar:vertical {
                 background: transparent;
-                width: 12px;
+                width: %dpx;
                 margin: 0px 0px 0px 0px;
-                border-radius: 6px;
+                border-radius: %dpx;
             }
             QScrollBar::handle:vertical {
                 background: rgba(255, 255, 255, 150);
-                min-height: 20px;
-                border-radius: 6px;
+                min-height: %dpx;
+                border-radius: %dpx;
             }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                 height: 0px;
@@ -62,7 +61,12 @@ class MainWindow(QWidget):
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
                 background: transparent;
             }
-        """)
+        """ % (
+            SETTINGS.window_scrollbar_width,
+            SETTINGS.window_scrollbar_width // 2,
+            SETTINGS.window_scrollbar_min_height,
+            SETTINGS.window_scrollbar_width // 2
+        ))
 
         self.layout = QVBoxLayout(content_widget)
 
@@ -72,8 +76,8 @@ class MainWindow(QWidget):
         self.widgets = []
         self.messages = queue.Queue()
         self.timer = QTimer(self)
-        self.timer.singleShot(1000, self.checkMessage)
-        self.timer.singleShot(1000, self.checkApp)
+        self.timer.singleShot(SETTINGS.window_checkmessage_interval, self.checkMessage)
+        self.timer.singleShot(SETTINGS.window_checkapp_interval, self.checkApp)
 
         self.hidden=False # 是否收缩进屏幕右侧
 
@@ -101,19 +105,18 @@ class MainWindow(QWidget):
         return
     
     def keyPressEvent(self, a0):
-        if a0.key() == Qt.Key_F18:
-            raise SystemExit
+        if a0.key() == SETTINGS.window_exitkey_code:
+            self.trayWidget.exit()
         
     def _globalHotkeyHandler(self, key_str):
-        # 如果按下F24，切换隐藏状态
-        if key_str == 'F24':
+        if key_str == SETTINGS.window_toggleshowkey:
             self.refreshHiddenState(not self.hidden)
         for callback in self.hotkey_callbacks.values():
             try:
                 callback(key_str)
             except Exception as e:
                 message=f"Error in hotkey callback: {e}"
-                print(message)
+                warnings.warn(message)
                 if hasattr(self, 'droprunner'):
                     self.droprunner.push_message()
         
@@ -280,7 +283,7 @@ class MainWindow(QWidget):
         if messages:
             self.showPopup('\n'.join(messages), parent=self)
         if self.isVisible():
-            self.timer.singleShot(500, self.checkMessage)
+            self.timer.singleShot(SETTINGS.window_checkmessage_interval, self.checkMessage)
         return
     
     def checkApp(self):
@@ -289,7 +292,7 @@ class MainWindow(QWidget):
         handle = self.windowHandle()
         if handle is None:
             raise RuntimeError("Window handle not found, exiting.")
-        self.timer.singleShot(2000, self.checkApp)
+        self.timer.singleShot(SETTINGS.window_checkapp_interval, self.checkApp)
     
     def closeEvent(self, a0):
         self._stop_moving_animation()
@@ -308,19 +311,29 @@ class MainWindow(QWidget):
 
 
 class BackgroundWidget(QLabel):
-    DEFAULT_COLOR = "#366778"
-    IMAGE_PATH = os.path.join("img", "bg_image.png")
-    BORDER_RADIUS = 50
     def __init__(self, parent:QWidget):
         super().__init__(parent)
         self.main=parent
         self.setGeometry(0, 0, self.main.width(), self.main.height())
         self.container=QLabel(self)
-        self.container.setStyleSheet("background-color: transparent; font-size: 10pt; margin: 20px;")
-        self.setStyleSheet(f"background-color: {self.DEFAULT_COLOR}; border-radius: {self.BORDER_RADIUS}px; ")
-        if self.IMAGE_PATH and os.path.exists(self.IMAGE_PATH):
-            # 读取并裁剪图片，使其具有透明圆角，且长宽比和窗口一致
-            pixmap = QPixmap(self.IMAGE_PATH)
+        self.container.setStyleSheet(f"background-color: transparent; font-size: {SETTINGS.font_size}pt; margin: {SETTINGS.window_padding}px;")
+        self.setStyleSheet(f"background-color: {SETTINGS.window_default_bgcolor}; border-radius: {SETTINGS.window_border_radius}px; ")
+        self.initialize()
+        
+
+    def initialize(self):
+        if SETTINGS.window_bgimage_path and os.path.exists(SETTINGS.window_bgimage_path):
+            pixmap = QPixmap(SETTINGS.window_bgimage_path)
+            # 缩放到填满窗口并裁剪多余部分
+            picwidth, picheight = pixmap.width(), pixmap.height()
+            targetwidth, targetheight = self.main.width(), self.main.height()
+            scale = max(targetwidth/picwidth, targetheight/picheight)
+            newwidth, newheight = int(picwidth*scale), int(picheight*scale)
+            pixmap = pixmap.scaled(newwidth, newheight, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            xoffset = (newwidth - targetwidth) // 2
+            yoffset = (newheight - targetheight) // 2
+            pixmap = pixmap.copy(xoffset, yoffset, targetwidth, targetheight)
+            # 应用圆角遮罩
             mask = QPixmap(pixmap.size())
             mask.fill(Qt.transparent)
             painter = QPainter(mask)
@@ -328,14 +341,45 @@ class BackgroundWidget(QLabel):
             painter.setBrush(Qt.white)
             painter.setPen(Qt.NoPen)
             rect = QRectF(0, 0, pixmap.width(), pixmap.height())
-            radius = min(pixmap.width(), pixmap.height()) * self.BORDER_RADIUS / min(self.main.width(), self.main.height())
+            radius = min(pixmap.width(), pixmap.height()) * SETTINGS.window_border_radius / min(self.main.width(), self.main.height())
             painter.drawRoundedRect(rect, radius, radius)
             painter.end()
             pixmap.setMask(mask.createMaskFromColor(Qt.transparent))
             self.setPixmap(pixmap)
             self.setScaledContents(True)
-
         self.container.show()
+
+
+    def reset_background_image(self):
+        SETTINGS.load()
+        path, _ = QFileDialog.getOpenFileName(
+            None, 
+            "Select Background Image", 
+            SETTINGS.clipboard_image_save_dir, 
+            "Image Files (*.png *.jpg *.bmp);;All Files (*)"
+        )
+        if not path:
+            return
+        if not os.path.isfile(path):
+            warnings.warn("Selected file does not exist.")
+            return
+        try:
+            im=Image.open(path)
+            im.verify()
+            im=Image.open(path)
+            assert im.fp is not None, "Invalid image file."
+        except Exception as e:
+            warnings.warn(f"Selected file is not a valid image: {e}")
+            return
+        im=im.convert('RGBA')
+        im.paste(Image.new('RGBA', im.size, (0,0,0,255)), (0,0), Image.new('L', im.size, SETTINGS.reset_background_image_opacity))
+        save_path = os.path.join(SETTINGS.working_dir, "img", "bg_image.png")
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        im.save(save_path)
+        SETTINGS.custom_bgimage_path = None
+        SETTINGS.save()
+        self.initialize()
+
 
 class WidgetBox(QWidget):
     "一个盒子，里面可以自定义布局放置元素。盒子边界为圆角矩形，上边界中央显示标题"
@@ -345,19 +389,12 @@ class WidgetBox(QWidget):
         self.layout=QVBoxLayout(self)
         self.title=QLabel(title, self)
         self.title.setAlignment(Qt.AlignCenter)
-        self.title.setFont(QFont(FONT_NAME, 12, QFont.Bold))
+        self.title.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size_large, QFont.Bold))
         self.title.setStyleSheet(f"color: {PlainText.TEXT_COLOR};")
         self.layout.addWidget(self.title)
         self.content=QWidget(self)
         self.content_layout=QVBoxLayout(self.content)
         self.layout.addWidget(self.content)
-        # self.setObjectName(f"WidgetBox_{id(self)}")
-        # self.setStyleSheet(f"""
-        #     QWidget#{self.objectName()} {{
-        #         border: 10px solid gray;
-        #         border-radius: 15px;
-        #     }}
-        # """)
         if widgets:
             for widget in widgets:
                 self.addWidget(widget)
@@ -375,7 +412,7 @@ class WidgetBox(QWidget):
         pen = QPen(Qt.gray, 2)
         painter.setPen(pen)
         rect = self.rect().adjusted(1, 1, -1, -1)
-        painter.drawRoundedRect(rect, 15, 15)
+        painter.drawRoundedRect(rect, SETTINGS.widgetbox_border_radius, SETTINGS.widgetbox_border_radius)
 
         painter.end()
 
@@ -384,7 +421,7 @@ class PlainText(QLabel):
     def __init__(self, text:str="", parent:QWidget=None):
         super().__init__(parent)
         self.setText(text)
-        self.setFont(QFont(FONT_NAME, 10))
+        self.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
         self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.setWordWrap(True)
         self.setStyleSheet(f"color: {self.TEXT_COLOR};")
@@ -395,11 +432,11 @@ class TrayIconWidget:
         self.manager=manager
         self.app = QApplication(sys.argv)
 
-        if not os.path.exists(ICON_PATH) or not os.path.isfile(ICON_PATH):
-            raise FileNotFoundError(f"Icon file not found: {ICON_PATH}")
+        if not os.path.exists(SETTINGS.icon_path) or not os.path.isfile(SETTINGS.icon_path):
+            raise FileNotFoundError(f"Icon file not found: {SETTINGS.icon_path}")
 
-        self.tray_icon = QSystemTrayIcon(QIcon(ICON_PATH), self.app)
-        self.tray_icon.setToolTip("Joat917's Toolkit")
+        self.tray_icon = QSystemTrayIcon(QIcon(SETTINGS.icon_path), self.app)
+        self.tray_icon.setToolTip(SETTINGS.window_title)
 
         menu = self.menu = QMenu()
 
@@ -407,15 +444,13 @@ class TrayIconWidget:
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
 
-        self.add_action("Joat917's Toolkit", lambda:FadingPopup("Hello there!").fadeIn())
-        self.add_action("Hide/Show(F24)", lambda:self.manager.refreshHiddenState(not self.manager.hidden))
-        self.add_action("Exit(F18)", self.exit)
+        self.add_action(SETTINGS.window_title, lambda:FadingPopup(SETTINGS.window_welcome).fadeIn())
+        self.add_action(f"Hide/Show({SETTINGS.window_toggleshowkey})", lambda:self.manager.refreshHiddenState(not self.manager.hidden))
+        self.add_action(f"Exit({SETTINGS.window_exitkey})", self.exit)
+        self.add_action("Set Background", self.manager.bgwidget.reset_background_image)
+        self.add_action("Settings", SETTINGS.open_popup_file)
 
-        self.tray_icon.show()        
-    
-    def action(self):
-        if self.manager is not None:
-            self.manager.action()
+        self.tray_icon.show()
 
     def add_action(self, name:str, callback):
         action = QAction(name, self.app)

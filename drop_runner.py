@@ -15,13 +15,13 @@ class DropRunner(WidgetBox):
 
         self.label = QLabel("Drop Pythons Here", self)
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setFont(QFont(FONT_NAME, 10, QFont.Bold))
+        self.label.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size, QFont.Bold))
         self.label.setStyleSheet(f"color: {PlainText.TEXT_COLOR};")
 
         self.debug_mode_sublayout = QHBoxLayout()
         self.switch = SwitchButton(self, onchange=self.setDebugMode)
         self.switchText = QLabel("Run mode", self)
-        self.switchText.setFont(QFont(FONT_NAME, 10))
+        self.switchText.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
         self.switchText.setStyleSheet(f"color: {PlainText.TEXT_COLOR};")
         self.debug_mode_sublayout.addWidget(self.switch)
         self.debug_mode_sublayout.addWidget(self.switchText)
@@ -36,7 +36,6 @@ class DropRunner(WidgetBox):
         self.master.trayWidget.add_action("Restart", self.restartEverything)
 
         self.last_dropped_files = []
-        self.last_dropped_max_count = 3
         self.last_dropped_sublayout = QVBoxLayout()
         self._last_dropped_widgets = []
         self.layout.addLayout(self.last_dropped_sublayout)
@@ -84,12 +83,12 @@ class DropRunner(WidgetBox):
             else:
                 self.push_message("Not a Python script: " + file_path)
             
-        _additions_to_last_dropped=_additions_to_last_dropped[:self.last_dropped_max_count]
+        _additions_to_last_dropped=_additions_to_last_dropped[:SETTINGS.droprunner_history_max]
         for file_path in _additions_to_last_dropped:
             if file_path in self.last_dropped_files:
                 self.last_dropped_files.remove(file_path)
         self.last_dropped_files=_additions_to_last_dropped+self.last_dropped_files
-        self.last_dropped_files=self.last_dropped_files[:self.last_dropped_max_count]
+        self.last_dropped_files=self.last_dropped_files[:SETTINGS.droprunner_history_max]
         self._refresh_last_dropped_display()
             
         event.acceptProposedAction()
@@ -142,19 +141,19 @@ class DropRunner(WidgetBox):
         if self.debug_mode:
             os.chdir(os.path.dirname(script_path))
             subprocess.Popen(f'cmd /k ""{self.python_path}" "{script_path}""', creationflags=subprocess.CREATE_NEW_CONSOLE)
-            os.chdir(WORKING_DIR)
+            os.chdir(SETTINGS.working_dir)
         else:
             app_path = self.pythonw_path if without_console else self.python_path
             def callbackfunc():
                 try:
                     os.chdir(os.path.dirname(script_path))
                     proc=subprocess.Popen([app_path, script_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
-                    os.chdir(WORKING_DIR)
+                    os.chdir(SETTINGS.working_dir)
                     ret=proc.wait()
                 except KeyboardInterrupt:
                     ret = -1073741510
                 finally:
-                    os.chdir(WORKING_DIR)
+                    os.chdir(SETTINGS.working_dir)
                 if ret>=0x80000000:
                     ret-=0x1_00000000
                 message = f'Program "{script_path}" exits with return value {ret}(0x{ret&0xffffffff:08X})'
@@ -178,11 +177,11 @@ class DropRunner(WidgetBox):
                 time.sleep(0.05)
             if not popup.user_response:
                 return
-        os.chdir(PROJECT_DIR)
+        os.chdir(SETTINGS.project_dir)
         subprocess.Popen(sys.orig_argv[:]+['--forceKillAllExistingInstances'], creationflags=subprocess.CREATE_NEW_CONSOLE)
         # this process will be killed by the newly started process
         time.sleep(0.01)
-        os.chdir(WORKING_DIR)
+        os.chdir(SETTINGS.working_dir)
 
     def close(self):
         self.master.trayWidget.remove_action("Restart")

@@ -82,7 +82,7 @@ class ClipboardWidget(WidgetBox):
         ))
 
         self.timer = QTimer(self)
-        self.timer.setInterval(500)
+        self.timer.setInterval(SETTINGS.clipboard_refresh_interval)
         self.timer.timeout.connect(self.refresh_clipboard_state)
         self.timer.start()
 
@@ -104,7 +104,7 @@ class ClipboardWidget(WidgetBox):
                 parent=self.master,
                 caption="Save Clipboard Image As",
                 filter="PNG Image (*.png);;All Files (*)",
-                directory=os.path.join(os.path.expanduser('~/Pictures'), 'clipboard_image.png')
+                directory=os.path.join(SETTINGS.clipboard_image_save_dir, 'clipboard_image.png')
             )
             return save_path
 
@@ -163,10 +163,10 @@ class ClipboardWidget(WidgetBox):
     def start_advanced_reader_callback(self):
         if hasattr(self.master, 'droprunner') and isinstance(self.master.droprunner, DropRunner):
             droprunner=self.master.droprunner
-            droprunner.run(os.path.abspath(os.path.join(PROJECT_DIR, 'clipboard_reader.py')), without_console=True)
+            droprunner.run(os.path.abspath(os.path.join(SETTINGS.project_dir, 'clipboard_reader.py')), without_console=True)
         else:
             droprunner=DropRunner(self.master)
-            droprunner.run(os.path.abspath(os.path.join(PROJECT_DIR, 'clipboard_reader.py')), without_console=True)
+            droprunner.run(os.path.abspath(os.path.join(SETTINGS.project_dir, 'clipboard_reader.py')), without_console=True)
             droprunner.close()
             droprunner.deleteLater()
 

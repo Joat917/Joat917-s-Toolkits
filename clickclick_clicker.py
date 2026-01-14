@@ -33,12 +33,12 @@ class ClickerWidget(WidgetBox):
         self.layout.addLayout(self.mouse_button_sublayout)
 
         self.interval_label = QLabel("Interval (ms):")
-        self.interval_label.setFont(QFont(FONT_NAME))
+        self.interval_label.setFont(QFont(SETTINGS.font_name))
         self.interval_label.setStyleSheet(f"color:{PlainText.TEXT_COLOR}")
         self.interval_input = QSpinBox()
-        self.interval_input.setRange(1, 1000)
-        self.interval_input.setValue(10)
-        self.interval_input.setFont(QFont(FONT_NAME))
+        self.interval_input.setRange(1, SETTINGS.clicker_max_interval)
+        self.interval_input.setValue(SETTINGS.clicker_default_interval)
+        self.interval_input.setFont(QFont(SETTINGS.font_name))
         self.interval_input.setStyleSheet(f"color:{PlainText.TEXT_COLOR}")
 
         self.interval_setting_sublayout = QHBoxLayout()
@@ -47,7 +47,7 @@ class ClickerWidget(WidgetBox):
         self.layout.addLayout(self.interval_setting_sublayout)
 
         self.hotkey_guideline = PlainText(
-            text="Hold F16 to begin clicking",
+            text=f"Hold {SETTINGS.clicker_hotkey} to begin clicking",
         )
         self.layout.addWidget(self.hotkey_guideline)
 
@@ -116,11 +116,11 @@ class ClickerWidget(WidgetBox):
             self._mouse_down = False
 
     def start_clicking_callback(self, key):
-        if key=='F16':
+        if key==SETTINGS.clicker_hotkey:
             self.start_clicking()
     
     def stop_clicking_callback(self, key):
-        if key=='F16':
+        if key==SETTINGS.clicker_hotkey:
             self.stop_clicking()
 
     def closeEvent(self, a0):

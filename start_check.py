@@ -3,7 +3,7 @@ from popup_window import ConfirmationPopup
 
 class CheckStarted:
     def __init__(self):
-        self.pid_file = os.path.join(WORKING_DIR, "app.pid")
+        self.pid_file = os.path.join(SETTINGS.working_dir, "app.pid")
         self.force_kill = '--forceKillAllExistingInstances' in sys.argv
         pass
 

@@ -3,16 +3,14 @@ from main_window import WidgetBox, MainWindow
 from switch_widgets import SwitchButton
 
 class KeyDisplay(QWidget):
-    X_L=0.6
-    Y_R=0.9
-
-    margin=10
-    padding=10
-    borderRadius=16
-    opacity=0.8
-    main_color='#FFA500'
-
-    _font = QFont(FONT_NAME, 10)
+    X_L = SETTINGS.c1124_X_L
+    Y_R = SETTINGS.c1124_Y_R
+    margin = SETTINGS.c1124_margin
+    padding = SETTINGS.c1124_padding
+    borderRadius = SETTINGS.c1124_borderRadius
+    opacity = SETTINGS.c1124_opacity
+    main_color = SETTINGS.c1124_main_color
+    _font = QFont(SETTINGS.font_name, SETTINGS.c1124_font_size)
     _fontMetrics = QFontMetrics(_font)
 
     def __init__(self, pos, text='Sample Text', manager=None):
@@ -42,39 +40,39 @@ class KeyDisplay(QWidget):
         self.opacity_effect.setOpacity(self.opacity)
         
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
-        QTimer.singleShot(200, self.checkExistence)
+        QTimer.singleShot(SETTINGS.c1124_check_existence_interval, self.checkExistence)
 
         self.animation_level=0
         self.animation=None
         self.animation2=None
 
-    def setColor(self, newColor='#DDDDDD'):
-        self.color=newColor
+    def setColor(self, newColor=None):
+        self.color=newColor if newColor is not None else SETTINGS.c1124_sub_color
         self.label.setStyleSheet(f"background-color: {self.color};")
 
-    def delayedFadeOut(self, duration=3000):
+    def delayedFadeOut(self):
         self.animation_level+=1
         x=self.animation_level
-        QTimer.singleShot(duration, lambda:self.fade_out(x))
+        QTimer.singleShot(SETTINGS.c1124_fadeout_delay, lambda:self.fade_out(x))
 
     def fade_out(self, targeted_level:int):
         if targeted_level<self.animation_level:
             return
         self.animation = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.animation.setDuration(2000)  
+        self.animation.setDuration(SETTINGS.c1124_fadeout_animation_duration)
         self.animation.setStartValue(self.opacity)
         self.animation.setEndValue(0.0)
         self.animation.setEasingCurve(QEasingCurve.Linear)
         self.animation.finished.connect(self.close)
         self.animation.start()
 
-    def move_to(self, new_pos, duration=300):
+    def move_to(self, new_pos):
         new_x, new_y=new_pos
         end_point = QPoint(new_x, new_y)
         if self.pos()==end_point:
             return
         self.animation2 = QPropertyAnimation(self, b"pos")
-        self.animation2.setDuration(duration)
+        self.animation2.setDuration(SETTINGS.c1124_move_duration)
         self.animation2.setStartValue(self.pos())
         self.animation2.setEndValue(end_point)
         self.animation2.setEasingCurve(QEasingCurve.InOutQuad)
@@ -104,7 +102,7 @@ class KeyDisplay(QWidget):
             self.close()
             self.deleteLater()
             return
-        QTimer.singleShot(200, self.checkExistence)
+        QTimer.singleShot(SETTINGS.c1124_check_existence_interval, self.checkExistence)
 
     @classmethod
     def distribute_places(cls, boxes:list[tuple[int,int]]):
@@ -129,14 +127,14 @@ class KeyDisplay(QWidget):
             yList.append(yList[-1]+lh+cls.margin)
         out=[]
         for x,i in xLineList:
-            out.append((x+10, yList[i]+10))
+            out.append((x+cls.margin, yList[i]+cls.margin))
         return out
 
     @classmethod
     def getSize(cls, text):
         return (
-            round(cls._fontMetrics.horizontalAdvance(text)*2+2*cls.padding),
-            round(cls._fontMetrics.height()*1.2+2*cls.padding)
+            round(cls._fontMetrics.horizontalAdvance(text)*SETTINGS.c1124_font_horizontal_scale+2*cls.padding),
+            round(cls._fontMetrics.height()*SETTINGS.c1124_font_vertical_scale+2*cls.padding)
         )
 
     @classmethod
@@ -181,7 +179,7 @@ class KeyDisplayerManager(QObject):
             self._newText(text)
 
     def callbackRelease(self, text):
-        time.sleep(0.001)
+        time.sleep(SETTINGS.c1124_release_event_delay)
         if text in self.texts:
             ind=self.texts.index(text)
             self._countDown(ind)
@@ -194,7 +192,6 @@ class KeyDisplayerManager(QObject):
         self.displays.append(KeyDisplay(KeyDisplay.coordMap(new_places[-1]), text=text, manager=self))
         self._reSort()
         self.displays[-1].show()
-        # print(f"Text {self.texts[ind]} generated")
 
     def _countDown(self, ind):
         self.displays[ind].delayedFadeOut()
@@ -214,7 +211,6 @@ class KeyDisplayerManager(QObject):
             ind=self.displays.index(obj)
         except ValueError:
             return
-        # print(f"Text {self.texts[ind]} killed")
         self.displays.pop(ind)
         self.boxes.pop(ind)
         self.texts.pop(ind)

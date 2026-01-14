@@ -5,13 +5,14 @@ import os
 import json
 import threading
 import time
+import warnings
+
 import pyperclip
 import win32clipboard
 import pywintypes
-from PIL import Image, ImageDraw, ImageFont
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-from base_import import WORKING_DIR, ICON_PATH
+from base_import import SETTINGS
 
 known_formats = {
 	1: "CF_TEXT",
@@ -152,72 +153,22 @@ def get_clipboard_status() -> str:
 	else:
 		return "( Cannot get text from clipboard. Below is the detail info of your clipboard: )\n\n" + get_clipboard_detail()
 
-
-class Settings:
-	def __init__(self, filename="settings.json"):
-		self.font_family = "Arial"
-		self.font_size = 12
-		self.text_color = "#000000"
-		self.background_color = "#FFFFFF"
-		self.window_geometry = "800x600+200+200"
-		self.filename = filename
-
-	def load_from_json(self):
-		try:
-			with open(self.filename, 'r', encoding='utf-8') as file:
-				data = json.load(file)
-				self.font_family = data.get("font_family", self.font_family)
-				self.font_size = data.get("font_size", self.font_size)
-				self.text_color = data.get("text_color", self.text_color)
-				self.background_color = data.get("background_color", self.background_color)
-				self.window_geometry = data.get("window_geometry", self.window_geometry)
-		except FileNotFoundError:
-			pass
-		except json.decoder.JSONDecodeError as e:
-			print(f"Error decoding json: {e}")
-
-	def save_to_json(self):
-		settings_data = {
-			"font_family": self.font_family,
-			"font_size": self.font_size,
-			"text_color": self.text_color,
-			"background_color": self.background_color,
-			"window_geometry": self.window_geometry
-		}
-		try:
-			with open(self.filename, 'w', encoding='utf-8') as file:
-				json.dump(settings_data, file, indent=4)
-		except Exception as e:
-			print(f"Error saving settings: {e}")
-
-	def open_popup_file(self):
-		try:
-			if os.name == 'nt':
-				os.startfile(os.path.abspath(self.filename))
-			else:
-				os.system(f"xdg-open \"{os.path.abspath(self.filename)}\"")
-		except Exception as e:
-			print(f"Cannot open settings file: {e}")
-
-
 class ClipboardMonitorWindow(QtWidgets.QMainWindow):
-	def __init__(self, settings: Settings):
+	def __init__(self):
 		super().__init__()
-		self.settings = settings
 		self.clipboard_content = ""
 
 		self.init_ui()
 		self.apply_settings()
 
-		# Timer to poll clipboard every second
 		self.timer = QtCore.QTimer(self)
-		self.timer.setInterval(1000)
+		self.timer.setInterval(SETTINGS.clipboard_refresh_interval)
 		self.timer.timeout.connect(self.check_clipboard)
 		self.timer.start()
 
 	def init_ui(self):
 		self.setWindowTitle('Clipboard Monitor')
-		self.setWindowIcon(QtGui.QIcon(ICON_PATH))
+		self.setWindowIcon(QtGui.QIcon(SETTINGS.icon_path))
 
 		central = QtWidgets.QWidget()
 		self.setCentralWidget(central)
@@ -227,7 +178,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 		# Button row
 		hbox = QtWidgets.QHBoxLayout()
 		self.btn_settings = QtWidgets.QPushButton('Settings')
-		self.btn_settings.clicked.connect(self.settings.open_popup_file)
+		self.btn_settings.clicked.connect(SETTINGS.open_popup_file)
 		hbox.addWidget(self.btn_settings)
 
 		self.btn_clear_content = QtWidgets.QPushButton('Clear Content')
@@ -252,7 +203,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 	def apply_settings(self):
 		# geometry
 		try:
-			geom = self.settings.window_geometry
+			geom = SETTINGS.clipboardreader_geometry
 			# expected format wxh+x+y
 			if '+' in geom and 'x' in geom:
 				parts = geom.split('+')
@@ -264,10 +215,10 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 		except Exception:
 			pass
 
-		font = QtGui.QFont(self.settings.font_family, int(self.settings.font_size))
+		font = QtGui.QFont(SETTINGS.font_name, SETTINGS.font_size)
 		self.text_widget.setFont(font)
 		# colors
-		self.text_widget.setStyleSheet(f"color: {self.settings.text_color}; background-color: {self.settings.background_color};")
+		self.text_widget.setStyleSheet(f"color: {SETTINGS.clipboardreader_text_color}; background-color: {SETTINGS.clipboardreader_background_color};")
 
 	def check_clipboard(self):
 		try:
@@ -276,7 +227,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 				self.clipboard_content = new_content
 				self.update_text_widget(new_content)
 		except Exception as e:
-			print(f"Error accessing clipboard: {e}")
+			warnings.warn(f"Error accessing clipboard: {e}")
 
 	def update_text_widget(self, content):
 		self.text_widget.setPlainText(content)
@@ -286,7 +237,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 			win32clipboard.OpenClipboard()
 			win32clipboard.EmptyClipboard()
 		except Exception as e:
-			print(f"clear_clipboard error: {e}")
+			warnings.warn(f"clear_clipboard error: {e}")
 		finally:
 			try:
 				win32clipboard.CloseClipboard()
@@ -300,7 +251,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 				self.clear_clipboard()
 				pyperclip.copy(content)
 		except Exception as e:
-			print(f"clear_format error: {e}")
+			warnings.warn(f"clear_format error: {e}")
 
 	def moveEvent(self, event):
 		self.save_geometry()
@@ -317,13 +268,14 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 			y = geom.y()
 			w = geom.width()
 			h = geom.height()
-			self.settings.window_geometry = f"{w}x{h}+{x}+{y}"
-			self.settings.save_to_json()
+			SETTINGS.clipboardreader_geometry = f"{w}x{h}+{x}+{y}"
+			# SETTINGS.save()
 		except Exception:
 			pass
 
 	def closeEvent(self, event):
 		self.save_geometry()
+		SETTINGS.save()
 		self.timer.timeout.disconnect()
 		self.timer.stop()
 		self.timer.deleteLater()
@@ -331,11 +283,8 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 
 
 def main():
-	settings = Settings(os.path.join(WORKING_DIR, "clipboard_reader_settings.json"))
-	settings.load_from_json()
-
 	app = QtWidgets.QApplication(sys.argv)
-	window = ClipboardMonitorWindow(settings)
+	window = ClipboardMonitorWindow()
 	window.show()
 	sys.exit(app.exec_())
 
