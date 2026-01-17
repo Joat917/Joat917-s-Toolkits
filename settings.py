@@ -136,6 +136,15 @@ class Settings:
         self.clicker_default_interval = 10 # ms
         self.clicker_hotkey = 'F16'
 
+        self.stopwatch_tube_length = 128
+        self.stopwatch_tube_width = 20
+        self.stopwatch_tube_color = "#FFFFFF"
+        self.stopwatch_size = 100 # px, height
+        self.stopwatch_xpos = 50
+        self.stopwatch_ypos = -200
+        self.stopwatch_opacity = 0.8 # 0-1
+        self.stopwatch_hotkey = 'F13'
+
         self.custom_icon_path = None
         self.custom_config_path = None
         self.custom_bgimage_path = None

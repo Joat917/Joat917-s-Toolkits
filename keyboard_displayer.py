@@ -1,5 +1,7 @@
 from base_import import *
 from main_window import MainWindow
+from widget_box import WidgetBox, PlainText
+from switch_widgets import SwitchButton
 
 class KeyDisplay(QWidget):
     X_L = SETTINGS.c1124_X_L
@@ -249,3 +251,33 @@ class KeyDisplayerManager(QObject):
     def removeAll(self):
         for i in range(len(self.texts)-1, 0, -1):
             self.displays[i].close()
+
+class KeyDisplayerWidget(WidgetBox):
+    def __init__(self, master:MainWindow):
+        super().__init__(parent=master, title="Key&Mouse Displayer")
+        self.keydisplayer_manager=None
+        self.toggle_button = SwitchButton(
+            onturnon=self.enable_keydisplayer, 
+            onturnoff=self.disable_keydisplayer
+        )
+        self.status_label = PlainText(
+            text="Disabled",
+            parent=self
+        )
+        self.sublayout = QHBoxLayout()
+        self.sublayout.addWidget(self.toggle_button)
+        self.sublayout.addWidget(self.status_label)
+        self.layout.addLayout(self.sublayout)
+
+    def enable_keydisplayer(self):
+        if self.keydisplayer_manager is not None:
+            self.disable_keydisplayer()
+        self.keydisplayer_manager=KeyDisplayerManager(self.master)
+        self.status_label.setText("Enabled")
+
+    def disable_keydisplayer(self):
+        if self.keydisplayer_manager is not None:
+            self.keydisplayer_manager.close()
+            self.keydisplayer_manager=None
+        self.status_label.setText("Disabled")
+

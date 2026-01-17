@@ -1,4 +1,6 @@
 from base_import import *
+from widget_box import WidgetBox, PlainText
+from switch_widgets import SwitchButton
 
 # digital tube manager
 
@@ -86,7 +88,7 @@ class TubePainter:
 
     @classmethod
     def paint_and_save(cls):
-        tp=TubePainter()
+        tp=TubePainter(size=SETTINGS.stopwatch_tube_length, width=SETTINGS.stopwatch_tube_width, color=SETTINGS.stopwatch_tube_color)
         os.makedirs('./img', exist_ok=True)
         for digit in DIGITS:
             tp.paintdigit(digit).save(f'./img/digitTube{digit}.png')
@@ -96,6 +98,19 @@ class TubePainter:
 
 class TubeReader:
     def __init__(self):
+        # try:
+        #     return self.initialize()
+        # except FileNotFoundError:
+        #     pass
+        # try:
+        #     TubePainter.paint_and_save()
+        #     return self.initialize()
+        # except ImportError:
+        #     raise
+        TubePainter.paint_and_save()
+        self.initialize()
+
+    def initialize(self):
         for d in DIGITS.keys():
             if not os.path.isfile(f'./img/digitTube{d}.png'):
                 raise FileNotFoundError(f'Image file for digit {d} not found.')
@@ -111,18 +126,6 @@ class TubeReader:
         self.pictures['.']=QPixmap('./img/digitTubeD.png')
         self.pictures[' ']=QPixmap('./img/digitTubeS.png')
         
-    @classmethod
-    def constructor(cls):
-        try:
-            return TubeReader()
-        except FileNotFoundError:
-            pass
-        try:
-            TubePainter.paint_and_save()
-            return TubeReader()
-        except ImportError:
-            raise
-
 
 class TubeUnit(QLabel):
     def __init__(self, parent, number:int, tubeReader:TubeReader):
@@ -146,16 +149,26 @@ class StopWatchMainWindow(QWidget):
         super().__init__()
         self.setWindowTitle("StopWatch14")
         screen_geometry = QApplication.primaryScreen().geometry()
-        self.setGeometry(50, screen_geometry.height()-300, 500, 100)
-        self.setWindowOpacity(0.8)
+
+        _width = SETTINGS.stopwatch_size * 5
+        _height = SETTINGS.stopwatch_size
+        if SETTINGS.stopwatch_xpos>=0:
+            xpos=SETTINGS.stopwatch_xpos
+        else:
+            xpos=screen_geometry.width()+SETTINGS.stopwatch_xpos-_width
+        if SETTINGS.stopwatch_ypos>=0:
+            ypos=SETTINGS.stopwatch_ypos
+        else:
+            ypos=screen_geometry.height()+SETTINGS.stopwatch_ypos-_height
+        self.setGeometry(xpos, ypos, _width, _height)
+        self.setWindowOpacity(SETTINGS.stopwatch_opacity)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        # self.setStyleSheet("background-color:rgba(0,0,0,0.5);border-radius: 10px")
 
         layout=QHBoxLayout()
-        tubeReader=TubeReader.constructor()
+        tubeReader=TubeReader()
         for k in tubeReader.pictures:
-            tubeReader.pictures[k]=tubeReader.pictures[k].scaled(50, 100)
+            tubeReader.pictures[k]=tubeReader.pictures[k].scaled(round(SETTINGS.stopwatch_size/2), SETTINGS.stopwatch_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.tubeunitsList=[
             ('h1',TubeUnit(self, 8, tubeReader)), 
             ('h0',TubeUnit(self, 8, tubeReader)), 
@@ -188,7 +201,7 @@ class StopWatchMainWindow(QWidget):
             from main_window import MainWindow
             assert isinstance(self._master, MainWindow)
             self._tray=self._master.trayWidget
-            self._hotkey = 'F13'
+            self._hotkey = SETTINGS.stopwatch_hotkey
             self._action = self._tray.add_action("Stopwatch:START"+f"({self._hotkey})", self.action)
             self._master.hotkey_callbacks[self._hotkey] = lambda key_str: self.action() if key_str == self._hotkey else None
         else:
@@ -281,3 +294,33 @@ class StopWatchMainWindow(QWidget):
         self._timer = None
         self.deleteLater()
         return super().close()
+
+
+class StopWatchWidgetBox(WidgetBox):
+    def __init__(self, master):
+        super().__init__(parent=master, title="Stopwatch")
+        self.stopwatch_mainwindow=None
+        self.toggle_button = SwitchButton(
+            onturnon=self.enable_stopwatch, 
+            onturnoff=self.disable_stopwatch
+        )
+        self.status_label = PlainText(
+            text="Disabled",
+            parent=self
+        )
+        self.sublayout = QHBoxLayout()
+        self.sublayout.addWidget(self.toggle_button)
+        self.sublayout.addWidget(self.status_label)
+        self.layout.addLayout(self.sublayout)
+
+    def enable_stopwatch(self):
+        if self.stopwatch_mainwindow is not None:
+            self.disable_stopwatch()
+        self.stopwatch_mainwindow=StopWatchMainWindow(self.master)
+        self.status_label.setText(f"Enabled (hotkey:{self.stopwatch_mainwindow._hotkey})")
+
+    def disable_stopwatch(self):
+        if self.stopwatch_mainwindow is not None:
+            self.stopwatch_mainwindow.close()
+            self.stopwatch_mainwindow=None
+        self.status_label.setText("Disabled")
