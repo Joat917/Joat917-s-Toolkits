@@ -1,4 +1,5 @@
 import os
+import subprocess
 import json
 import warnings
 
@@ -235,13 +236,7 @@ class Settings:
         return self.color_string_to_tuple(self.contextmenu_fgcolor)
     
     def open_popup_file(self):
-        try:
-            if os.name == 'nt':
-                os.startfile(os.path.abspath(self.config_path))
-            else:
-                os.system(f"xdg-open \"{os.path.abspath(self.config_path)}\"")
-        except Exception as e:
-            warnings.warn(f"Cannot open settings file: {e}")
+        subprocess.Popen("explorer /select,\"{}\"".format(self.config_path))
 
 
 SETTINGS = Settings()
