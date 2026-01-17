@@ -1,6 +1,5 @@
 from base_import import *
-from main_window import WidgetBox, MainWindow
-from switch_widgets import SwitchButton
+from main_window import MainWindow
 
 class KeyDisplay(QWidget):
     X_L = SETTINGS.c1124_X_L

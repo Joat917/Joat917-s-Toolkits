@@ -1,5 +1,6 @@
 from base_import import *
-from main_window import WidgetBox, MainWindow
+from main_window import MainWindow
+from widget_box import WidgetBox
 from switch_widgets import SwitchButton, PushButton
 from popup_window import ConfirmationPopup
 

@@ -1,5 +1,6 @@
 from base_import import *
-from main_window import MainWindow, WidgetBox, PlainText
+from main_window import MainWindow
+from widget_box import WidgetBox, PlainText
 from switch_widgets import PushButton
 from drop_runner import DropRunner
 

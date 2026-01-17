@@ -1,6 +1,7 @@
 from base_import import *
 from start_check import CheckStarted
-from main_window import MainWindow, WidgetBox, PlainText
+from main_window import MainWindow
+from widget_box import WidgetBox, PlainText
 from stop_watch import StopWatchMainWindow
 from switch_widgets import SwitchButton, PushButton
 from drop_runner import DropRunner
@@ -15,12 +16,12 @@ class UtilitiesWidget(WidgetBox):
         self.keyboard_manager=[]
         self.stopwatch=[]
 
-        self.inline_calculator_button = PushButton(
-            onclick=self.droprunner_callback, 
-            text="Inline Calculator", 
-            width=240, 
-            bg_color=QColor(100, 150, 250)
-        )
+        # self.inline_calculator_button = PushButton(
+        #     onclick=self.droprunner_callback, 
+        #     text="Inline Calculator", 
+        #     width=240, 
+        #     bg_color=QColor(100, 150, 250)
+        # )
 
         self.keyboard_displayer_button = SwitchButton(
             onturnon=lambda: self.keyboard_manager.append(KeyDisplayerManager(self.master)), 
@@ -48,7 +49,7 @@ class UtilitiesWidget(WidgetBox):
         self.stopwatch_sublayout.addWidget(self.stopwatch_button)
         self.stopwatch_sublayout.addWidget(self.stopwatch_label)
 
-        self.layout.addWidget(self.inline_calculator_button)
+        # self.layout.addWidget(self.inline_calculator_button)
         self.layout.addLayout(self.keyboard_displayer_sublayout)
         self.layout.addLayout(self.stopwatch_sublayout)
 
@@ -74,10 +75,22 @@ if __name__ == "__main__":
         window = MainWindow(app=app)
 
         drop_runner = DropRunner(window)
-        window.addWidget(drop_runner)
         window.droprunner = drop_runner
 
+        window.addWidget(WidgetBox(
+            parent=window,
+            title="Inline Calculator",
+            widgets=[PushButton(
+                onclick=lambda: drop_runner.run(os.path.join(SETTINGS.project_dir, 'inline_calculator.py')), 
+                text="Inline Calculator", 
+                width=240, 
+                bg_color=QColor(100, 150, 250)
+            )]
+        ))
+
         window.addWidget(ClipboardWidget(parent=window))
+
+        window.addWidget(drop_runner)
 
         window.addWidget(UtilitiesWidget(master=window))
 
