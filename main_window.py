@@ -1,6 +1,7 @@
 from base_import import *
 from popup_window import FadingPopup
 from keyboard_listener import KeyboardListenerSignalPatched as KeyboardListener
+from custom_menu import CustomMenu
 
 class MainWindow(QWidget):
     # 大小和停靠位置参数
@@ -392,7 +393,7 @@ class TrayIconWidget:
         self.tray_icon = QSystemTrayIcon(QIcon(SETTINGS.icon_path), self.app)
         self.tray_icon.setToolTip(SETTINGS.window_title)
 
-        menu = self.menu = QMenu()
+        menu = self.menu = CustomMenu()
 
         self.tray_actions = {}
         self.tray_icon.setContextMenu(menu)

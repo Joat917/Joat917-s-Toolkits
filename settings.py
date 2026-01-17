@@ -73,6 +73,14 @@ class Settings:
 
         self.reset_background_image_opacity = 100 # 0-255
 
+        self.contextmenu_bgcolor = "#333333"
+        self.contextmenu_hover_bgcolor = "#415B91"
+        self.contextmenu_fgcolor = "#FFFFFF"
+        self.contextmenu_bgalpha = 200 # 0-255
+        self.contextmenu_fgalpha = 200 # 0-255
+        self.contextmenu_border_radius = 20
+        self.contextmenu_border_width = 2 # px
+
         self.widgetbox_border_radius = 20
 
         self.popup_window_width = 300
@@ -157,18 +165,9 @@ class Settings:
 
     def editable_keys(self):
         for key in self.keys():
-            if key not in [
-                "working_dir",
-                "project_dir",
-                "config_path",
-                "icon_path",
-                "window_bgimage_path",
-                "clipboard_image_save_dir",
-                "switchbutton_oncolor_tuple",
-                "switchbutton_offcolor_tuple",
-                "switchbutton_slidercolor_tuple",
-            ]:
-                yield key
+            if isinstance(getattr(Settings, key), property):
+                continue
+            yield key
 
     @property
     def working_dir(self):
@@ -222,6 +221,18 @@ class Settings:
     @property
     def switchbutton_slidercolor_tuple(self):
         return self.color_string_to_tuple(self.switchbutton_slidercolor)
+    
+    @property
+    def contextmenu_bgcolor_tuple(self):
+        return self.color_string_to_tuple(self.contextmenu_bgcolor)
+    
+    @property
+    def contextmenu_hover_bgcolor_tuple(self):
+        return self.color_string_to_tuple(self.contextmenu_hover_bgcolor)
+    
+    @property
+    def contextmenu_fgcolor_tuple(self):
+        return self.color_string_to_tuple(self.contextmenu_fgcolor)
     
     def open_popup_file(self):
         try:
