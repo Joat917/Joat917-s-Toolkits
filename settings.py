@@ -166,7 +166,7 @@ class Settings:
 
     def editable_keys(self):
         for key in self.keys():
-            if isinstance(getattr(Settings, key), property):
+            if hasattr(Settings, key) and isinstance(getattr(Settings, key), property):
                 continue
             yield key
 
