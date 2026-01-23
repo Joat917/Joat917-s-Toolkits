@@ -14,7 +14,7 @@ class DropRunner(WidgetBox):
 
         self.master = master
 
-        self.label = QLabel("Drop Pythons Here", self)
+        self.label = QLabel("Drop Pythons and Cs Here", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size, QFont.Bold))
         self.label.setStyleSheet(f"color: {SETTINGS.text_color};")
@@ -81,8 +81,14 @@ class DropRunner(WidgetBox):
             elif file_path.endswith('.pyw'):
                 self.run(file_path, without_console=True)
                 _additions_to_last_dropped.append(file_path)
+            elif file_path.endswith('.c'):
+                self.run_Ccode(file_path)
+                _additions_to_last_dropped.append(file_path)
+            elif file_path.endswith('.cpp'):
+                self.run_Ccode(file_path, cpp=True)
+                _additions_to_last_dropped.append(file_path)
             else:
-                self.push_message("Not a Python script: " + file_path)
+                self.push_message("Not a Python or C script: " + file_path)
             
         _additions_to_last_dropped=_additions_to_last_dropped[:SETTINGS.droprunner_history_max]
         for file_path in _additions_to_last_dropped:
@@ -116,8 +122,12 @@ class DropRunner(WidgetBox):
                     self.run(file_path, without_console=False)
                 elif file_path.endswith('.pyw'):
                     self.run(file_path, without_console=True)
+                elif file_path.endswith('.c'):
+                    self.run_Ccode(file_path)
+                elif file_path.endswith('.cpp'):
+                    self.run_Ccode(file_path, cpp=True)
                 else:
-                    self.push_message("Not a Python script: " + file_path)
+                    self.push_message("Not a Python or C script: " + file_path)
                 return
             
             text = os.path.basename(file_path)
@@ -160,6 +170,56 @@ class DropRunner(WidgetBox):
                 message = f'Program "{script_path}" exits with return value {ret}(0x{ret&0xffffffff:08X})'
                 self.push_message(message)
             threading.Thread(target=callbackfunc, daemon=True).start()
+
+    def run_Ccode(self, source_path:str, cpp=False):
+        source_path = os.path.abspath(source_path)
+        exe_path = os.path.splitext(source_path)[0] + '.exe'
+        if os.path.exists(exe_path):
+            suffix_index = 2
+            exe_path = exe_path[:-4] + f'_{suffix_index}.exe'
+            while os.path.exists(exe_path):
+                suffix_index += 1
+                exe_path = exe_path[:-len(f'_{suffix_index-1}.exe')] + f'_{suffix_index}.exe'
+        compile_command = f"{'gcc' if not cpp else 'g++'} -O3 \"{source_path}\" -o \"{exe_path}\""
+        
+        if self.debug_mode:
+            os.chdir(os.path.dirname(source_path))
+            subprocess.Popen(f'cmd /k {compile_command} && ("{exe_path}" & echo Program exits with return value %errorlevel%)', creationflags=subprocess.CREATE_NEW_CONSOLE)
+            os.chdir(SETTINGS.working_dir)
+        else:
+            def callback_compile():
+                try:
+                    os.chdir(os.path.dirname(source_path))
+                    proc=subprocess.Popen(compile_command, shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    os.chdir(SETTINGS.working_dir)
+                    ret=proc.wait()
+                except KeyboardInterrupt:
+                    ret = -1073741510
+                finally:
+                    os.chdir(SETTINGS.working_dir)
+                if ret>=0x80000000:
+                    ret-=0x1_00000000
+                if ret==0:
+                    callback_run()
+                else:
+                    message = f'Compilation Failure: {ret}(0x{ret&0xffffffff:08X})'
+                    self.push_message(message)
+            def callback_run():
+                try:
+                    os.chdir(os.path.dirname(source_path))
+                    proc=subprocess.Popen([exe_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    os.chdir(SETTINGS.working_dir)
+                    ret=proc.wait()
+                except KeyboardInterrupt:
+                    ret = -1073741510
+                finally:
+                    os.chdir(SETTINGS.working_dir)
+                if ret>=0x80000000:
+                    ret-=0x1_00000000
+                message = f'Program "{exe_path}" exits with return value {ret}(0x{ret&0xffffffff:08X})'
+                self.push_message(message)
+            threading.Thread(target=callback_compile, daemon=True).start()
+
 
     def push_message(self, message: str):
         # print(message)
