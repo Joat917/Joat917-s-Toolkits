@@ -1,4 +1,4 @@
-from base_import import *
+from basic_settings import *
 
 class CustomMenu(QMenu):
     "更好看的菜单（默认不内置任何按钮，可自行添加）"

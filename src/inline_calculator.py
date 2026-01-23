@@ -3,6 +3,7 @@ import code
 import sys
 import os
 import base64
+from basic_settings import SETTINGS
 
 class InlineCalculator(code.InteractiveConsole):
     NAMEX = "namex" # 试图用UniTex渲染'namex'字符串时使用的结果
@@ -37,7 +38,7 @@ class InlineCalculator(code.InteractiveConsole):
             self.push(command)
 
         try:
-            with open(os.path.join(os.path.dirname(__file__), 'namex_data.a85.txt'), 'r', encoding='utf-8') as f:
+            with open(SETTINGS.namexfilepath, 'r', encoding='utf-8') as f:
                 new_namex = base64.a85decode(f.read().strip().encode()).decode()
                 if new_namex:
                     self.NAMEX = new_namex

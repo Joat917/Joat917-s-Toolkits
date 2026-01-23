@@ -7,7 +7,7 @@ os.environ['PYTHONIOENCODING'] = 'utf-8'
 os.environ['PYTHONUTF8'] = '1'
 
 WORKING_DIR = os.path.join(os.environ['APPDATA'], 'PyScriptX', 'MyToolkits')
-PROJECT_DIR = os.path.abspath(os.path.dirname(__file__))
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 os.makedirs(WORKING_DIR, exist_ok=True)
 os.chdir(WORKING_DIR)
 
@@ -179,22 +179,36 @@ class Settings:
         return PROJECT_DIR
     
     @property
+    def src_dir(self):
+        return os.path.join(PROJECT_DIR, 'src')
+    
+    @property
     def config_path(self):
         if self.custom_config_path and os.path.isfile(self.custom_config_path):
             return self.custom_config_path
         return os.path.join(WORKING_DIR, 'settings.json')
+    
+    @property
+    def img_dir(self):
+        pth = os.path.join(WORKING_DIR, 'img')
+        os.makedirs(pth, exist_ok=True)
+        return pth
 
     @property
     def icon_path(self):
         if self.custom_icon_path and os.path.isfile(self.custom_icon_path):
             return self.custom_icon_path
-        return os.path.abspath(os.path.join(PROJECT_DIR, 'img', 'icon.png'))
+        return os.path.join(PROJECT_DIR, 'assets', 'icon.png')
+    
+    @property
+    def namexfilepath(self):
+        return os.path.join(PROJECT_DIR, 'assets', 'namex_data.a85.txt')
     
     @property
     def window_bgimage_path(self):
         if self.custom_bgimage_path and os.path.isfile(self.custom_bgimage_path):
             return self.custom_bgimage_path
-        return os.path.join(WORKING_DIR, "img", "bg_image.png")
+        return os.path.join(self.img_dir, "bg_image.png")
     
     @property
     def clipboard_image_save_dir(self):

@@ -18,10 +18,13 @@ import psutil
 import pyperclip
 import win32clipboard
 import pywintypes
-from PIL import Image
 
+import PIL
+from PIL import Image, ImageDraw
+
+import PyQt5
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-from settings import SETTINGS
+from .settings import SETTINGS

@@ -1,7 +1,7 @@
-from base_import import *
-from popup_window import FadingPopup
-from keyboard_listener import KeyboardListenerSignalPatched as KeyboardListener
-from custom_menu import CustomMenu
+from basic_settings import *
+from .popup_window import FadingPopup
+from .keyboard_listener import KeyboardListenerSignalPatched as KeyboardListener
+from .custom_menu import CustomMenu
 
 class MainWindow(QWidget):
     # 大小和停靠位置参数
@@ -374,7 +374,7 @@ class BackgroundWidget(QLabel):
             return
         im=im.convert('RGBA')
         im.paste(Image.new('RGBA', im.size, (0,0,0,255)), (0,0), Image.new('L', im.size, SETTINGS.reset_background_image_opacity))
-        save_path = os.path.join(SETTINGS.working_dir, "img", "bg_image.png")
+        save_path = os.path.join(SETTINGS.img_dir, "bg_image.png")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         im.save(save_path)
         SETTINGS.custom_bgimage_path = None

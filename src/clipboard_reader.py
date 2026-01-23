@@ -1,18 +1,6 @@
 # 转写自已有文件ClipBoardReader.pyw，后者基于tkinter实现
 
-import sys
-import os
-import json
-import threading
-import time
-import warnings
-
-import pyperclip
-import win32clipboard
-import pywintypes
-from PyQt5 import QtWidgets, QtGui, QtCore
-
-from base_import import SETTINGS
+from basic_settings import *
 
 known_formats = {
 	1: "CF_TEXT",
@@ -153,7 +141,7 @@ def get_clipboard_status() -> str:
 	else:
 		return "( Cannot get text from clipboard. Below is the detail info of your clipboard: )\n\n" + get_clipboard_detail()
 
-class ClipboardMonitorWindow(QtWidgets.QMainWindow):
+class ClipboardMonitorWindow(QMainWindow):
 	def __init__(self):
 		super().__init__()
 		self.clipboard_content = ""
@@ -161,42 +149,42 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 		self.init_ui()
 		self.apply_settings()
 
-		self.timer = QtCore.QTimer(self)
+		self.timer = QTimer(self)
 		self.timer.setInterval(SETTINGS.clipboard_refresh_interval)
 		self.timer.timeout.connect(self.check_clipboard)
 		self.timer.start()
 
 	def init_ui(self):
 		self.setWindowTitle('Clipboard Monitor')
-		self.setWindowIcon(QtGui.QIcon(SETTINGS.icon_path))
+		self.setWindowIcon(QIcon(SETTINGS.icon_path))
 
-		central = QtWidgets.QWidget()
+		central = QWidget()
 		self.setCentralWidget(central)
 
-		vbox = QtWidgets.QVBoxLayout(central)
+		vbox = QVBoxLayout(central)
 
 		# Button row
-		hbox = QtWidgets.QHBoxLayout()
-		self.btn_settings = QtWidgets.QPushButton('Settings')
+		hbox = QHBoxLayout()
+		self.btn_settings = QPushButton('Settings')
 		self.btn_settings.clicked.connect(SETTINGS.open_popup_file)
 		hbox.addWidget(self.btn_settings)
 
-		self.btn_clear_content = QtWidgets.QPushButton('Clear Content')
+		self.btn_clear_content = QPushButton('Clear Content')
 		self.btn_clear_content.clicked.connect(self.clear_clipboard)
 		hbox.addWidget(self.btn_clear_content)
 
-		self.btn_clear_format = QtWidgets.QPushButton('Clear Format')
+		self.btn_clear_format = QPushButton('Clear Format')
 		self.btn_clear_format.clicked.connect(self.clear_format)
 		hbox.addWidget(self.btn_clear_format)
 
-		self.btn_close = QtWidgets.QPushButton('Close')
+		self.btn_close = QPushButton('Close')
 		self.btn_close.clicked.connect(self.close)
 		hbox.addWidget(self.btn_close)
 
 		vbox.addLayout(hbox)
 
 		# Text area
-		self.text_widget = QtWidgets.QTextEdit()
+		self.text_widget = QTextEdit()
 		self.text_widget.setReadOnly(True)
 		vbox.addWidget(self.text_widget)
 
@@ -215,7 +203,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 		except Exception:
 			pass
 
-		font = QtGui.QFont(SETTINGS.font_name, SETTINGS.font_size)
+		font = QFont(SETTINGS.font_name, SETTINGS.font_size)
 		self.text_widget.setFont(font)
 		# colors
 		self.text_widget.setStyleSheet(f"color: {SETTINGS.clipboardreader_text_color}; background-color: {SETTINGS.clipboardreader_background_color};")
@@ -283,7 +271,7 @@ class ClipboardMonitorWindow(QtWidgets.QMainWindow):
 
 
 def main():
-	app = QtWidgets.QApplication(sys.argv)
+	app = QApplication(sys.argv)
 	window = ClipboardMonitorWindow()
 	window.show()
 	sys.exit(app.exec_())

@@ -1,4 +1,4 @@
-from base_import import *
+from basic_settings import *
 
 class SwitchButton(QLabel):
     "长圆形开关，背景灰色或蓝色。包含一个白色圆形滑块可以左右滑动切换状态。"

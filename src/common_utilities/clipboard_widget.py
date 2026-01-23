@@ -1,8 +1,6 @@
-from base_import import *
-from main_window import MainWindow
-from widget_box import WidgetBox, PlainText
-from switch_widgets import PushButton
-from drop_runner import DropRunner
+from basic_settings import *
+from main_widgets import MainWindow, WidgetBox, PlainText, PushButton
+from .drop_runner import DropRunner
 
 class ClipboardContext:
     def __init__(self, error_callback=lambda e: None):
@@ -168,10 +166,10 @@ class ClipboardWidget(WidgetBox):
     def start_advanced_reader_callback(self):
         if hasattr(self.master, 'droprunner') and isinstance(self.master.droprunner, DropRunner):
             droprunner=self.master.droprunner
-            droprunner.run(os.path.abspath(os.path.join(SETTINGS.project_dir, 'clipboard_reader.py')), without_console=True)
+            droprunner.run(os.path.abspath(os.path.join(SETTINGS.src_dir, 'clipboard_reader.py')), without_console=True)
         else:
             droprunner=DropRunner(self.master)
-            droprunner.run(os.path.abspath(os.path.join(SETTINGS.project_dir, 'clipboard_reader.py')), without_console=True)
+            droprunner.run(os.path.abspath(os.path.join(SETTINGS.src_dir, 'clipboard_reader.py')), without_console=True)
             droprunner.close()
             droprunner.deleteLater()
 

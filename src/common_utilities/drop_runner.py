@@ -1,9 +1,5 @@
-from base_import import *
-from main_window import MainWindow
-from widget_box import WidgetBox
-from switch_widgets import SwitchButton, PushButton
-from popup_window import ConfirmationPopup
-
+from basic_settings import *
+from main_widgets import MainWindow, WidgetBox, SwitchButton, PushButton, ConfirmationPopup
 
 class DropRunner(WidgetBox):
     TITLE = "Drop Runner"
@@ -226,7 +222,6 @@ class DropRunner(WidgetBox):
         try:
             self.master.messages.put_nowait(message)
         except Exception:
-            import traceback
             traceback.print_exc()
 
     def restartEverything(self, *, confirm=False):

@@ -1,6 +1,5 @@
-from base_import import *
-from widget_box import WidgetBox, PlainText
-from switch_widgets import SwitchButton
+from basic_settings import *
+from main_widgets import WidgetBox, PlainText, SwitchButton, MainWindow
 
 # digital tube manager
 
@@ -20,7 +19,6 @@ DIGITS = {
 
 class TubePainter:
     def __init__(self, size=128, width=24, color=(255, 255, 255, 255)):
-        from PIL import Image
         self.size=size
         self.width=width
         self.color=color
@@ -28,13 +26,12 @@ class TubePainter:
         self.tubeLayoutV=self.tubeLayoutH.transpose(Image.Transpose.ROTATE_90)
 
     def paintSingleTube(self):
-        from PIL import Image as Im, ImageDraw as Imd
         color, width, size=self.color, self.width, self.size
         gap = round(width*0.9)
-        image = Im.new("RGBA", (size, width), color)
+        image = Image.new("RGBA", (size, width), color)
         for _ in range(4):
-            Imd.Draw(image).polygon([(0,0),(gap, 0),(0,gap)], fill=(0,0,0,0))
-            image=image.transpose(Im.Transpose.ROTATE_90)
+            ImageDraw.Draw(image).polygon([(0,0),(gap, 0),(0,gap)], fill=(0,0,0,0))
+            image=image.transpose(Image.Transpose.ROTATE_90)
         return image
     
     def _putTube(self, im, lefttop, vertical):
@@ -44,9 +41,8 @@ class TubePainter:
             im.paste(self.tubeLayoutH, lefttop, self.tubeLayoutH.getchannel('A'))
 
     def paintdigit(self, digit: int):
-        from PIL import Image as Im, ImageDraw as Imd
         width, size=self.width, self.size
-        image = Im.new("RGBA", (size, size*2), (0, 0, 0, 0))
+        image = Image.new("RGBA", (size, size*2), (0, 0, 0, 0))
 
         if DIGITS[digit][0]:
             self._putTube(image, (size-width, width//4), 1)
@@ -66,22 +62,20 @@ class TubePainter:
         return image
     
     def paintcolon(self):
-        from PIL import Image as Im, ImageDraw as Imd
         color, width, size=self.color, self.width, self.size
         gap = width//2
-        image = Im.new("RGBA", (size, size*2), (0, 0, 0, 0))
-        draw = Imd.Draw(image)
+        image = Image.new("RGBA", (size, size*2), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(image)
         draw.rectangle((size//2-gap, size//2-gap, size//2+gap, size//2+gap), fill=color)
         draw.rectangle((size//2-gap, size+size//2-gap, size//2+gap, size+size//2+gap), fill=color)
 
         return image
     
     def paintdot(self):
-        from PIL import Image as Im, ImageDraw as Imd
         color, width, size=self.color, self.width, self.size
         gap = width//2
-        image = Im.new("RGBA", (size, size*2), (0, 0, 0, 0))
-        draw = Imd.Draw(image)
+        image = Image.new("RGBA", (size, size*2), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(image)
         draw.rectangle((size//2-gap, 2*size-width, size//2+gap, 2*size), fill=color)
 
         return image
@@ -89,42 +83,32 @@ class TubePainter:
     @classmethod
     def paint_and_save(cls):
         tp=TubePainter(size=SETTINGS.stopwatch_tube_length, width=SETTINGS.stopwatch_tube_width, color=SETTINGS.stopwatch_tube_color)
-        os.makedirs('./img', exist_ok=True)
         for digit in DIGITS:
-            tp.paintdigit(digit).save(f'./img/digitTube{digit}.png')
-        tp.paintcolon().save('./img/digitTubeC.png')
-        tp.paintdot().save('./img/digitTubeD.png')
-        __import__('PIL').Image.new("RGBA", (tp.size, 2*tp.size), (0,0,0,0)).save('./img/digitTubeS.png')
+            tp.paintdigit(digit).save(os.path.join(SETTINGS.img_dir, f'digitTube{digit}.png'))
+        tp.paintcolon().save(os.path.join(SETTINGS.img_dir, 'digitTubeC.png'))
+        tp.paintdot().save(os.path.join(SETTINGS.img_dir, 'digitTubeD.png'))
+        Image.new("RGBA", (tp.size, 2*tp.size), (0,0,0,0)).save(os.path.join(SETTINGS.img_dir, 'digitTubeS.png'))
 
 class TubeReader:
     def __init__(self):
-        # try:
-        #     return self.initialize()
-        # except FileNotFoundError:
-        #     pass
-        # try:
-        #     TubePainter.paint_and_save()
-        #     return self.initialize()
-        # except ImportError:
-        #     raise
         TubePainter.paint_and_save()
         self.initialize()
 
     def initialize(self):
         for d in DIGITS.keys():
-            if not os.path.isfile(f'./img/digitTube{d}.png'):
+            if not os.path.isfile(os.path.join(SETTINGS.img_dir, f'digitTube{d}.png')):
                 raise FileNotFoundError(f'Image file for digit {d} not found.')
-        if not os.path.isfile('./img/digitTubeC.png'):
+        if not os.path.isfile(os.path.join(SETTINGS.img_dir, 'digitTubeC.png')):
             raise FileNotFoundError('Image file for colon not found.')
-        if not os.path.isfile('./img/digitTubeD.png'):
+        if not os.path.isfile(os.path.join(SETTINGS.img_dir, 'digitTubeD.png')):
             raise FileNotFoundError('Image file for dot not found.')
-        if not os.path.isfile('./img/digitTubeS.png'):
+        if not os.path.isfile(os.path.join(SETTINGS.img_dir, 'digitTubeS.png')):
             raise FileNotFoundError('Image file for space not found.')
         
-        self.pictures={d:QPixmap(f'./img/digitTube{d}.png') for d in DIGITS.keys()}
-        self.pictures[':']=QPixmap('./img/digitTubeC.png')
-        self.pictures['.']=QPixmap('./img/digitTubeD.png')
-        self.pictures[' ']=QPixmap('./img/digitTubeS.png')
+        self.pictures={d:QPixmap(os.path.join(SETTINGS.img_dir, f'digitTube{d}.png')) for d in DIGITS.keys()}
+        self.pictures[':']=QPixmap(os.path.join(SETTINGS.img_dir, 'digitTubeC.png'))
+        self.pictures['.']=QPixmap(os.path.join(SETTINGS.img_dir, 'digitTubeD.png'))
+        self.pictures[' ']=QPixmap(os.path.join(SETTINGS.img_dir, 'digitTubeS.png'))
         
 
 class TubeUnit(QLabel):
@@ -198,7 +182,6 @@ class StopWatchMainWindow(QWidget):
         self._action=None
         self._master=mainWindow
         if self._master is not None:
-            from main_window import MainWindow
             assert isinstance(self._master, MainWindow)
             self._tray=self._master.trayWidget
             self._hotkey = SETTINGS.stopwatch_hotkey

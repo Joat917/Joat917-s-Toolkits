@@ -1,14 +1,7 @@
-from base_import import *
-from start_check import CheckStarted
-from main_window import MainWindow
-from widget_box import WidgetBox, PlainText
-from stop_watch import StopWatchWidgetBox
-from switch_widgets import SwitchButton, PushButton
-from drop_runner import DropRunner
-from keyboard_displayer import KeyDisplayerWidget
-from clickclick_clicker import ClickerWidget
-from clipboard_widget import ClipboardWidget
-    
+from basic_settings import *
+from main_widgets import CheckStarted, MainWindow, WidgetBox, PlainText, SwitchButton, PushButton
+from common_utilities import StopWatchWidgetBox, DropRunner, KeyDisplayerWidget, ClickerWidget, ClipboardWidget
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -22,7 +15,7 @@ if __name__ == "__main__":
             parent=window,
             title="Inline Calculator",
             widgets=[PushButton(
-                onclick=lambda: drop_runner.run(os.path.join(SETTINGS.project_dir, 'inline_calculator.py')), 
+                onclick=lambda: drop_runner.run(os.path.join(SETTINGS.src_dir, 'inline_calculator.py')), 
                 text="Inline Calculator", 
                 width=240, 
                 bg_color=QColor(100, 150, 250)
@@ -42,19 +35,19 @@ if __name__ == "__main__":
             title="Other Tools",
             widgets=[
                 PushButton(
-                    onclick=lambda: drop_runner.run(os.path.join(SETTINGS.project_dir, 'word_counter.py')), 
+                    onclick=lambda: drop_runner.run(os.path.join(SETTINGS.src_dir, 'word_counter.py')), 
                     text="Word Counter", 
                     width=220, 
                     bg_color=QColor(200, 200, 100)
                 ), 
                 PushButton(
-                    onclick=lambda: drop_runner.run(os.path.join(SETTINGS.project_dir, 'hex_quickview.py')), 
+                    onclick=lambda: drop_runner.run(os.path.join(SETTINGS.src_dir, 'hex_quickview.py')), 
                     text="Raw Hex Previewer", 
                     width=260, 
                     bg_color=QColor(100, 200, 200)
                 ),
                 PushButton(
-                    onclick=lambda: drop_runner.run(os.path.join(SETTINGS.project_dir, 'ScdAch', 'mainmenu.py'), without_console=True), 
+                    onclick=lambda: drop_runner.run(os.path.join(SETTINGS.src_dir, 'ScdAch', 'mainmenu.py'), without_console=True), 
                     text="Schedule Achievements", 
                     width=300, 
                     bg_color=QColor(200, 100, 200)

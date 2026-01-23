@@ -1,5 +1,5 @@
-from base_import import *
-from popup_window import ConfirmationPopup
+from basic_settings import *
+from .popup_window import ConfirmationPopup
 
 class CheckStarted:
     def __init__(self):

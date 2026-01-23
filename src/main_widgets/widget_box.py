@@ -1,4 +1,4 @@
-from base_import import *
+from basic_settings import *
 
 
 class PlainText(QLabel):

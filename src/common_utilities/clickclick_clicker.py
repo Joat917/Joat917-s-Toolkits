@@ -1,9 +1,8 @@
 # 连点器
 
-from base_import import *
-from main_window import MainWindow
-from widget_box import WidgetBox, PlainText
-from switch_widgets import SwitchButton
+from basic_settings import *
+from main_widgets import MainWindow, WidgetBox, PlainText, SwitchButton
+
 
 class ClickerWidget(WidgetBox):
     def __init__(self, master:MainWindow):
