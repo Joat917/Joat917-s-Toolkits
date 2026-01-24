@@ -1739,5 +1739,5 @@ class Main:
             pg.display.update()
             tick += 1
 
-
-Main().mainloop()
+if __name__ == "__main__":
+    Main().mainloop()

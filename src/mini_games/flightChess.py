@@ -583,5 +583,5 @@ def mainloop():
                     refresh_mode[1].append((*dice.picture.pos, dice.picture.pos[0]+dice.picture.scaling(im.width),
                                             dice.picture.pos[1]+dice.picture.scaling(im.height)))
 
-
-mainloop()
+if __name__ == '__main__':
+    mainloop()

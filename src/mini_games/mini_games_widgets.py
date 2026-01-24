@@ -1,10 +1,10 @@
 from basic_settings import *
 from main_widgets import MainWindow, WidgetBox, PlainText, PushButton
 
-def run_game(master:MainWindow, game_path:str, *args):
+def run_game(master:MainWindow, game_path:str, without_console=True, *args):
     if hasattr(master, 'droprunner'):
         full_path = os.path.join(SETTINGS.src_dir, 'mini_games', game_path)
-        master.droprunner.run(full_path, arguments=args, without_console=True)
+        master.droprunner.run(full_path, arguments=args, without_console=without_console)
     else:
         master.messages.put_nowait("DropRunner not found in master window.")
 
@@ -38,6 +38,18 @@ class MiniGamesWidget(WidgetBox):
             width=220,
             bg_color=QColor(250, 150, 150)
         )
+        self.numguess_button = PushButton(
+            onclick=lambda: run_game(self.master, 'NUMGUESS410_GUI.pyw'),
+            text="4-dig Number Guessing",
+            width=300,
+            bg_color=QColor(150, 250, 200)
+        )
+        self.numguess_solver_button = PushButton(
+            onclick=lambda: run_game(self.master, 'NUMGUESS410_attack.py', without_console=False),
+            text="... Solver",
+            width=160,
+            bg_color=QColor(200, 150, 250)
+        )
         self.rushhour_button = PushButton(
             onclick=lambda: run_game(self.master, 'CrossRushHour.pyw'),
             text="Rush-hour Simulator",
@@ -60,9 +72,14 @@ class MiniGamesWidget(WidgetBox):
         self.line2.addWidget(self.point24solver_button)
 
         self.line3 = QHBoxLayout()
-        self.line3.addWidget(self.rushhour_button)
-        self.line3.addWidget(self.fireshow_button)
+        self.line3.addWidget(self.numguess_button)
+        self.line3.addWidget(self.numguess_solver_button)
+
+        self.line4 = QHBoxLayout()
+        self.line4.addWidget(self.rushhour_button)
+        self.line4.addWidget(self.fireshow_button)
 
         self.layout.addLayout(self.line1)
         self.layout.addLayout(self.line2)
         self.layout.addLayout(self.line3)
+        self.layout.addLayout(self.line4)

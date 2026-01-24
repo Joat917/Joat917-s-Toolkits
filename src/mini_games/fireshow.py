@@ -23,13 +23,13 @@ def get_vinitial(x_target, y_target, x_start, y_start=SCREEN_HEIGHT, time=randin
 
 
 class Media:
-    ROOT_PATH = "../../assets/fireshow/"
+    ROOT_PATH = '../../assets/numguess/'
     def __init__(self) -> None:
         try:
             self.backgrounds = pg.transform.scale(pg.image.load(os.path.join(self.ROOT_PATH, "Starnight2.png")), (SCREEN_WIDTH, SCREEN_HEIGHT))
         except Exception:
             self.backgrounds = self.generate_background()
-        self.icon = pg.image.load(os.path.join(self.ROOT_PATH, "icon.png"))
+        self.icon = pg.image.load(os.path.join(self.ROOT_PATH, "icon_fireshow.png"))
         self.font = Imf.truetype("arial.ttf", 30)
         self.textcanavas = Im.new("RGBA", (SCREEN_WIDTH, 40))
         self.fireworks = [pg.transform.scale(pg.image.load(os.path.join(self.ROOT_PATH, f"Firework-{i}.png")), (FIREWORK_SIZE, FIREWORK_SIZE))for i in range(10)]

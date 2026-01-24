@@ -10,8 +10,7 @@ FPS = 30
 FIREWORK_ACCELERATION = 1
 FIREWORK_GAP = 5
 
-IMAGE_ROOT = os.path.abspath('../../assets/point24game/')
-FIREWORK_IMAGE_ROOT = os.path.abspath('../../assets/fireshow/')
+IMAGE_ROOT = os.path.abspath('../../assets/numguess/')
 WORKING_DIR = os.path.join(os.environ['APPDATA'], 'PyScriptX', 'MyToolkits') # from settings.py
 
 try:
@@ -21,7 +20,7 @@ except Exception:
 bkg.paste(Im.new("RGBA", (WIDTH, HEIGHT), color=(0, 0, 0, 255)), (0, 0, WIDTH, HEIGHT), mask=Im.new('L', (WIDTH, HEIGHT), 100))
 BACKGROUND = pg.image.frombuffer(bkg.tobytes(), (WIDTH, HEIGHT), "RGBA")
 
-FIREWORK_IMG = [pg.transform.scale(pg.image.load(os.path.join(FIREWORK_IMAGE_ROOT, f"Firework-{i}.png")), (10, 10)) for i in range(10)]
+FIREWORK_IMG = [pg.transform.scale(pg.image.load(os.path.join(IMAGE_ROOT, f"Firework-{i}.png")), (10, 10)) for i in range(10)]
 ICON = pg.image.load(os.path.join(IMAGE_ROOT, 'icon.png'))
 
 FONT1 = Imf.truetype('arial.ttf', 30)
