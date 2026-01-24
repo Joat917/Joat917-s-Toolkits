@@ -144,9 +144,23 @@ class DropRunner(WidgetBox):
             self.last_dropped_sublayout.addWidget(label)
             self._last_dropped_widgets.append(label)
 
-    def run(self, script_path: str, without_console: bool=False, arguments:tuple[str] = ()):
+    def run(self, script_path: str, without_console: bool=False, run_dir=None, arguments:tuple[str] = ()):
+        """
+        运行一个Python脚本。
+        如果自身处于debug模式，则在新控制台中运行，运行结束后控制台窗口仍然打开；
+        如果处于正常模式，则根据without_console选项选择是否打开控制台，并在程序运行完成后关闭控制台。
+
+        Args:
+            script_path (str): Python脚本的路径
+            without_console (bool, optional): 是否不显示控制台窗口。默认为False
+            run_dir (str, optional): 运行目录。默认为None，表示使用脚本文件所在目录
+            arguments (tuple[str], optional): 传递给脚本的命令行参数。默认为空
+        """
+        if run_dir is None:
+            run_dir = os.path.dirname(script_path)
+        script_path = os.path.abspath(script_path)
         if self.debug_mode:
-            os.chdir(os.path.dirname(script_path))
+            os.chdir(run_dir)
             etc = ' '.join(f'"{arg}"' for arg in arguments)
             subprocess.Popen(f'cmd /k ""{self.python_path}" "{script_path}" {etc}"', creationflags=subprocess.CREATE_NEW_CONSOLE)
             os.chdir(SETTINGS.working_dir)
@@ -154,7 +168,7 @@ class DropRunner(WidgetBox):
             app_path = self.pythonw_path if without_console else self.python_path
             def callbackfunc():
                 try:
-                    os.chdir(os.path.dirname(script_path))
+                    os.chdir(run_dir)
                     proc=subprocess.Popen([app_path, script_path, *arguments], creationflags=subprocess.CREATE_NEW_CONSOLE)
                     os.chdir(SETTINGS.working_dir)
                     ret=proc.wait()

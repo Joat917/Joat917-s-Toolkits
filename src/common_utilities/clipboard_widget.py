@@ -166,10 +166,10 @@ class ClipboardWidget(WidgetBox):
     def start_advanced_reader_callback(self):
         if hasattr(self.master, 'droprunner') and isinstance(self.master.droprunner, DropRunner):
             droprunner=self.master.droprunner
-            droprunner.run(os.path.abspath(os.path.join(SETTINGS.src_dir, 'clipboard_reader.py')), without_console=True)
+            droprunner.run(os.path.abspath(os.path.join(SETTINGS.src_dir, 'small_tools', 'clipboard_reader.py')), without_console=True)
         else:
             droprunner=DropRunner(self.master)
-            droprunner.run(os.path.abspath(os.path.join(SETTINGS.src_dir, 'clipboard_reader.py')), without_console=True)
+            droprunner.run(os.path.abspath(os.path.join(SETTINGS.src_dir, 'small_tools', 'clipboard_reader.py')), without_console=True)
             droprunner.close()
             droprunner.deleteLater()
 
@@ -329,3 +329,13 @@ def get_encoding_name(data):
     except RuntimeError:
         encoding_name="Not Text"
     return encoding_name
+
+def get_clipboard_file_paths()->list[str]:
+    file_paths=[]
+    with ClipboardContext():
+        if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_HDROP):
+            file_paths = win32clipboard.GetClipboardData(win32clipboard.CF_HDROP)
+    return file_paths
+
+def get_clipboard_text()->str:
+    return pyperclip.paste()

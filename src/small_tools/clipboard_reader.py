@@ -1,5 +1,9 @@
 # 转写自已有文件ClipBoardReader.pyw，后者基于tkinter实现
 
+# import patch
+import os, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from basic_settings import *
 
 known_formats = {

@@ -1,0 +1,1 @@
+from .small_tools_widgets import InlineCalculatorWidget, OtherToolsWidget, HotkeyGuideWidget
