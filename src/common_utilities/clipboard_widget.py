@@ -339,3 +339,18 @@ def get_clipboard_file_paths()->list[str]:
 
 def get_clipboard_text()->str:
     return pyperclip.paste()
+
+def get_clipboard_image()->Image.Image|None:
+    with ClipboardContext():
+        if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_DIB):
+            data = win32clipboard.GetClipboardData(win32clipboard.CF_DIB)
+            bmpinfo = data[:40]
+            width = int.from_bytes(bmpinfo[4:8], 'little')
+            height = int.from_bytes(bmpinfo[8:12], 'little')
+            bpp = int.from_bytes(bmpinfo[14:16], 'little')
+            if bpp != 32:
+                return None
+            img_data = data[40:]
+            img = Image.frombuffer('RGBA', (width, height), img_data, 'raw', 'BGRA', 0, 1)
+            return img
+    return None

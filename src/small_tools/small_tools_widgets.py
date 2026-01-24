@@ -1,6 +1,6 @@
 from basic_settings import *
 from main_widgets import MainWindow, WidgetBox, PlainText, PushButton
-from common_utilities import get_clipboard_file_paths, get_clipboard_text
+from common_utilities import get_clipboard_file_paths, get_clipboard_text, get_clipboard_image
 
 def run_tool(master:MainWindow, script_path:str, *args):
     if hasattr(master, 'droprunner'):
@@ -48,10 +48,16 @@ class OtherToolsWidget(WidgetBox):
             width=260, 
             bg_color=QColor(100, 200, 200)
         )
+        self.qr_scanner_button = PushButton(
+            onclick=self.run_qr_scanner,
+            text="QR Code Scanner",
+            width=250,
+            bg_color=QColor(100, 200, 150)
+        )
         self.scdach_calendar_button = PushButton(
             onclick=self.run_scdach_calendar, 
             text="ScdAch Calendar", 
-            width=240, 
+            width=230, 
             bg_color=QColor(150, 100, 250)
         )
         self.schedule_achievements_button = PushButton(
@@ -63,15 +69,17 @@ class OtherToolsWidget(WidgetBox):
 
         self.addWidget(self.word_counter_button)
         self.addWidget(self.hex_quickview_button)
+        self.addWidget(self.qr_scanner_button)
         self.addWidget(self.scdach_calendar_button)
         self.addWidget(self.schedule_achievements_button)
 
         self.tempfile = os.path.join(SETTINGS.working_dir, 'other_tools_temp.txt')
+        self.tempimagefile = os.path.join(SETTINGS.working_dir, 'other_tools_temp_image.png')
 
     def run_word_counter(self):
         fp = get_clipboard_file_paths()
         if fp:
-            return run_tool(self.master, 'word_counter.py', *fp)
+            return run_tool(self.master, 'word_counter.py', fp[0])
         texts = get_clipboard_text()
         if texts:
             with open(self.tempfile, 'w', encoding='utf-8') as f:
@@ -82,8 +90,18 @@ class OtherToolsWidget(WidgetBox):
     def run_hex_quickview(self):
         fp = get_clipboard_file_paths()
         if fp:
-            return run_tool(self.master, 'hex_quickview.py', *fp)
+            return run_tool(self.master, 'hex_quickview.py', fp[0])
         return run_tool(self.master, 'hex_quickview.py')
+    
+    def run_qr_scanner(self):
+        img_data = get_clipboard_image()
+        if img_data:
+            img_data.save(self.tempimagefile)
+            return run_tool(self.master, 'qrcode_scanner.py', self.tempimagefile)
+        fp = get_clipboard_file_paths()
+        if fp:
+            return run_tool(self.master, 'qrcode_scanner.py', fp[0])
+        return run_tool(self.master, 'qrcode_scanner.py')
     
     def run_scdach_calendar(self):
         return run_script(self.master, os.path.join('ScdAch', 'calendarA.py'))
@@ -94,6 +112,8 @@ class OtherToolsWidget(WidgetBox):
     def close(self):
         if os.path.exists(self.tempfile):
             os.remove(self.tempfile)
+        if os.path.exists(self.tempimagefile):
+            os.remove(self.tempimagefile)
         return super().close()
 
 class HotkeyGuideWidget(WidgetBox):

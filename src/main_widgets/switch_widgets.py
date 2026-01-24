@@ -1,5 +1,31 @@
 from basic_settings import *
 
+def robustify_0arg(func):
+    def wrapper():
+        try:
+            return func()
+        except Exception as e:
+            err_info = f"Exception in {func.__name__}: {e}\n"
+            err_info += traceback.format_exc()
+            print(err_info)
+            with open(SETTINGS.error_log_file, "a+", encoding="utf-8") as f:
+                f.write(err_info)
+                f.write("\n\n")
+    return wrapper
+
+def robustify_1arg(func):
+    def wrapper(arg):
+        try:
+            return func(arg)
+        except Exception as e:
+            err_info = f"Exception in {func.__name__}: {e}\n"
+            err_info += traceback.format_exc()
+            print(err_info)
+            with open(SETTINGS.error_log_file, "a+", encoding="utf-8") as f:
+                f.write(err_info)
+                f.write("\n\n")
+    return wrapper
+
 class SwitchButton(QLabel):
     "长圆形开关，背景灰色或蓝色。包含一个白色圆形滑块可以左右滑动切换状态。"
     def __init__(self, parent=None, onchange=lambda state:None, onturnon=lambda:None, onturnoff=lambda:None):
@@ -11,9 +37,9 @@ class SwitchButton(QLabel):
         self.animation_timer = None
         self.animation_repeat_count = 0
         self.target_position = SETTINGS.switchbutton_padding  # 目标位置
-        self.onchange = onchange
-        self.onturnon = onturnon
-        self.onturnoff = onturnoff
+        self.onchange = robustify_1arg(onchange)
+        self.onturnon = robustify_0arg(onturnon)
+        self.onturnoff = robustify_0arg(onturnoff)
 
         # self._old_under_mouse = False
 
@@ -112,7 +138,7 @@ class PushButton(QPushButton):
         self.onclick = onclick
         self.border_radius = height//2
 
-        self.clicked.connect(self.onclick)
+        self.clicked.connect(robustify_0arg(self.onclick))
         self.setCursor(Qt.PointingHandCursor)
         self.setStyleSheet(f"""
             QPushButton {{

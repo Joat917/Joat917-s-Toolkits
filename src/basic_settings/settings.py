@@ -205,6 +205,10 @@ class Settings:
         return os.path.join(PROJECT_DIR, 'assets', 'namex_data.a85.txt')
     
     @property
+    def error_log_file(self):
+        return os.path.join(self.working_dir, 'error_log.txt')
+    
+    @property
     def window_bgimage_path(self):
         if self.custom_bgimage_path and os.path.isfile(self.custom_bgimage_path):
             return self.custom_bgimage_path
