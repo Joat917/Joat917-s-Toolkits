@@ -1,9 +1,11 @@
-from PIL import Image as Im, ImageDraw as Imd, ImageFont as Imf
-import pygame as pg
+import os
 from sys import exit
 from copy import deepcopy
 from random import randint, random
 from math import ceil as ceiling
+from PIL import Image as Im, ImageDraw as Imd, ImageFont as Imf
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame as pg
 
 STRAIGHT_CLASSIC = True  # do not use arrows to make straight-forward lights
 LAG_TIME = 2  # Speed for simulation slow down for ~ times

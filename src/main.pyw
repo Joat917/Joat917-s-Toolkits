@@ -2,6 +2,7 @@ from basic_settings import *
 from main_widgets import CheckStarted, MainWindow, WidgetBox, PlainText, SwitchButton, PushButton
 from common_utilities import StopWatchWidgetBox, DropRunner, KeyDisplayerWidget, ClickerWidget, ClipboardWidget
 from small_tools.small_tools_widgets import InlineCalculatorWidget, OtherToolsWidget, HotkeyGuideWidget
+from mini_games.mini_games_widgets import MiniGamesWidget
 
 
 if __name__ == "__main__":
@@ -19,6 +20,7 @@ if __name__ == "__main__":
         window.addWidget(StopWatchWidgetBox(master=window))
         window.addWidget(ClickerWidget(window))
         window.addWidget(OtherToolsWidget(parent=window))
+        window.addWidget(MiniGamesWidget(parent=window))
         window.addWidget(HotkeyGuideWidget(parent=window))
         window.show()
         try:
