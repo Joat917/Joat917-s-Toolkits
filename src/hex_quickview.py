@@ -3,124 +3,70 @@
 适合查看极大文件的前一小半部分。
 """
 
-def show01(lst, prefix="  ", subcont=" "*16, end=''):
-    "以标准格式显示一行自定义内容"
-    if len(lst) != 16:
-        raise ValueError("In show01: List length not 16 @ "+repr(lst))
-    if not all(map(lambda c: type(c) == str, lst)):
-        raise ValueError("In show01: Elements not all string @ "+repr(lst))
-    if not all(map(lambda c: len(c) == 2, lst)):
-        raise ValueError("In show01: Elements not all length 2 @ "+repr(lst))
-    if not type(prefix) == str:
-        raise ValueError("In show01: Prefix not string @ "+repr(prefix))
-    if len(prefix) != 2:
-        raise ValueError("In show01: Prefix not length 2 @ "+repr(prefix))
-    if not type(subcont) == str:
-        raise ValueError("In show01: Subcont not str @ "+repr(subcont))
-    if len(subcont) != 16:
-        raise ValueError("In show01: Subcont not length 16 @ "+repr(subcont))
-    print(prefix+"| "+'  '.join(lst)+" |"+subcont+'|', end=end)
-
-
-def showSep():
-    "显示一行分割线"
-    print("  |"+'-'*64+'|'+'-'*16+'|')
-
-
-def lin2(i: int) -> str:
-    "把正整数表示为二字符符号"
-    if 0 <= i <= 9:
-        return ' '+str(i)
-    elif i <= 99:
-        return str(i)
-    elif i <= 359:
-        return chr(i//10+55)+str(i % 10)
-    else:
-        return '?'+str(i % 10)
-
-
-def showTit():
-    "显示表头"
-    show01([lin2(i) for i in range(16)], end='\n')
-
-
-def hex1d(i):
-    if i < 10:
-        return chr(i+48)
-    else:
-        return chr(i+55)
-
-
-def hex2d(i):
-    return hex1d(i >> 4)+hex1d(i & 15)
-
-
-def asciify(i):
-    "尝试把给定整数显示为ascii字符"
-    if 33 <= i <= 126:
-        return chr(i)
-    elif i == 32:
-        return ' '#'␣'
-    else:
-        return ' '
-
-
-def showLin(lbt, prefix):
-    "显示16个字符"
-    o = [hex2d(c) for c in lbt]
-    q = ''.join(map(asciify, lbt))
-    if len(o) < 16:
-        q += ' '*(16-len(o))
-        o += ['  ']*(16-len(o))
-    show01(o, prefix, q)
-
-
-def showCont(bts, sepCaller=input):
-    "给定字节流，输出结果"
-    showTit()
-    showSep()
-    i = 0
-    i2 = 16
+def data_displayer():
+    """
+    一个生成器，输入字节流，输出格式化的十六进制和ASCII表示字符流。
+    """
+    buf = "          00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F  ASCII\n"
+    buf += "          -----------------------------------------------  ----------------\n"
+    data = b''
+    line_count = 0
+    new_data = None
     while True:
-        c = bts[i:i2]
-        if not c:
-            return
-        showLin(c, lin2(i >> 4))
-        i = i2
-        i2 += 16
-        sepCaller()
+        new_data = yield buf
+        buf = ''
+        if not new_data:
+            break
+        data += new_data
+        while len(data) >= 16:
+            chunk = data[:16]
+            hex_bytes = ' '.join(f"{byte:02X}" for byte in chunk)
+            ascii_bytes = ''.join((chr(byte) if 32 <= byte <= 126 else '.') for byte in chunk)
+            line = f"{line_count:08X}  {hex_bytes:<47}  {ascii_bytes}\n"
+            buf += line
+            line_count += 16
+            data = data[16:]
+    if data:
+        hex_bytes = ' '.join(f"{byte:02X}" for byte in data)
+        ascii_bytes = ''.join((chr(byte) if 32 <= byte <= 126 else '.') for byte in data)
+        line = f"{line_count:08X}  {hex_bytes:<47}  {ascii_bytes}\n"
+        buf += line
+    yield buf
+    return
 
-
-def showCont2(file, sepCaller=input):
-    "给定文件流(通常非常大)，输出结果"
-    showTit()
-    showSep()
-    i = 0
-    while True:
-        c = file.read(16)
-        if not c:
-            return
-        showLin(c, lin2(i))
-        i += 1
-        sepCaller()
-
-
-def main():
-    while True:
-        try:
-            fp = input("fp:=")
-            if not fp:
+def hex_quickview(file_path):
+    """
+    以交互方式查看文件的十六进制内容。
+    """
+    import msvcrt
+    with open(file_path, 'rb') as f:
+        displayer = data_displayer()
+        print(displayer.send(None), end='')
+        print(displayer.send(f.read(256)), end='')
+        while f.peek(1)!=b'':
+            key = msvcrt.getch()
+            if key in [b' ']:
+                chunk = f.read(256)
+            elif key in [b'\r']:
+                chunk = f.read(16)
+            elif key in [b'\x1b', b'q']:
+                return
+            else:
                 continue
-            if fp[0] == '"' and fp[-1] == '"':
-                fp = fp[1:-1]
-            with open(fp, 'rb') as file:
-                print()
-                showCont2(file)
-                # ct = file.read()
-            # showCont(ct)
-        except Exception as exc:
-            print("Exception:", exc)
-
-
+            if not chunk:
+                break
+            output = displayer.send(chunk)
+            if output:
+                print(output, end='')
+    print(displayer.send(None), end='')
+    print("          -- End of File --")
+    msvcrt.getch()
+            
+            
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) != 2:
+        hex_quickview(input("Enter filepath: "))
+    else:
+        hex_quickview(sys.argv[1])
+

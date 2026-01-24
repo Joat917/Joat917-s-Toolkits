@@ -1,4 +1,4 @@
-# import re
+from collections import defaultdict
 
 CHARACTER_TYPES = [
     'Ascii Letter'
@@ -39,12 +39,9 @@ def tellCharType(c: str):
     else:
         return 'Others'
 
-# pattern=re.compile(r'[^\w ]')
 
-
-def count_words_in_line(line_of_text: str):
-    "return dict[Type: List]"
-    out = {}
+def count_words_in_line(line_of_text: str) -> dict[str, list[str]]:
+    out = defaultdict(list)
     buf = ''
 
     def clearBuf():
@@ -54,7 +51,7 @@ def count_words_in_line(line_of_text: str):
             buf = ''
 
     def pushOut(typ, cnt):
-        out[typ] = out.get(typ, [])+[cnt]
+        out[typ].append(cnt)
 
     for c in line_of_text:
         current_type = tellCharType(c)
@@ -84,26 +81,40 @@ def count_words_in_line(line_of_text: str):
                 pushOut('Others', c)
     clearBuf()
     return out
-    # texted=pattern.sub(' ', line_of_text.strip())
-    # out=texted.split()
-    # try:
-    #     while True:
-    #         out.remove('s')
-    # except ValueError:
-    #     return out
 
 
-def dict_combine(*dics):
-    if len(dics) == 0:
-        return {}
-    elif len(dics) == 1:
-        return dics[0]
-    out = {}
-    for d in dics:
-        for k, v in d.items():
-            out[k] = out.get(k, [])
+def dict_combine(*dics):    
+    out = defaultdict(list)
+    for dic in dics:
+        for k, v in dic.items():
             out[k].extend(v)
     return out
+
+
+def word_counter(text:str):
+    word_count = dict_combine(*[count_words_in_line(line) for line in text.splitlines()])
+    output = {
+        "String Length": len(text),
+        "String Byte Length": len(text.encode('utf-8')),
+        "Latin Words": len(word_count['Latin']), 
+        "Average Latin Word Length": len(''.join(word_count['Latin']))/len(word_count['Latin']) if len(word_count['Latin'])>0 else float('nan'),
+        "CJK Characters": len(word_count['CJK']),
+        "Punctuations": len(word_count['Punctuation']),
+        "Others": len(word_count['Others']),
+        "word_count": word_count, 
+    }
+    output["format_summary"] = (
+        "Statistics:\n"
+        f"String Length: {output['String Length']}\n"
+        f"String Byte Length: {output['String Byte Length']}\n"
+        f"Latin Words: {output['Latin Words']}\n"
+        +(f" - Average Word Length: {output['Average Latin Word Length']:.2f}\n" if output['Latin Words']>0 else "")
+        +f"CJK Characters: {output['CJK Characters']}\n"
+        f"Punctuations: {output['Punctuations']}\n"
+        f"Others: {output['Others']}\n"
+        +(f" - Others contains: {set(word_count['Others'])}\n" if output['Others']>0 else "")
+    )
+    return output
 
 
 def getInput():
@@ -119,34 +130,19 @@ def getInput():
             while True:
                 out += '\n'+input().strip()
         except EOFError:
-            return out
-
-
-def main():
-    while True:
-        text = getInput()
-        word_count = dict_combine(*[count_words_in_line(line)
-                                  for line in text.splitlines()])
-
-        def get_word_count(typ):
-            try:
-                return len(word_count[typ])
-            except KeyError:
-                return 0
-        print("Statistics:")
-        print("String Length: %i" % len(text))
-        print("String Byte Length: %i" % len(text.encode('utf-8')))
-        print("Latin Words: %i" % get_word_count('Latin'))
-        if get_word_count('Latin'):
-            print('- Average Word Length: %.2f' %
-                  (len(''.join(word_count['Latin']))/get_word_count('Latin')))
-        print("CJK Characters: %i" % get_word_count('CJK'))
-        print("Punctuations: %i" % get_word_count('Punctuation'))
-        print("Others: %i" % get_word_count('Others'))
-        if get_word_count('Others'):
-            print('- Others contains: '+str(set(word_count['Others'])))
-        print()
+            return out  
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) == 2:
+        print(f"Processing file: {sys.argv[1]}")
+        with open(sys.argv[1], 'r') as f:
+            text = f.read()
+            word_count = word_counter(text)
+            print(word_count['format_summary'])
+        input("Press Enter to exit...")
+    else:
+        while True:
+            text = getInput()
+            print(word_counter(text)['format_summary'])

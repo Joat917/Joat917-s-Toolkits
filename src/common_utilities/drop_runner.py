@@ -144,17 +144,18 @@ class DropRunner(WidgetBox):
             self.last_dropped_sublayout.addWidget(label)
             self._last_dropped_widgets.append(label)
 
-    def run(self, script_path: str, without_console: bool=False):
+    def run(self, script_path: str, without_console: bool=False, arguments:tuple[str] = ()):
         if self.debug_mode:
             os.chdir(os.path.dirname(script_path))
-            subprocess.Popen(f'cmd /k ""{self.python_path}" "{script_path}""', creationflags=subprocess.CREATE_NEW_CONSOLE)
+            etc = ' '.join(f'"{arg}"' for arg in arguments)
+            subprocess.Popen(f'cmd /k ""{self.python_path}" "{script_path}" {etc}"', creationflags=subprocess.CREATE_NEW_CONSOLE)
             os.chdir(SETTINGS.working_dir)
         else:
             app_path = self.pythonw_path if without_console else self.python_path
             def callbackfunc():
                 try:
                     os.chdir(os.path.dirname(script_path))
-                    proc=subprocess.Popen([app_path, script_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    proc=subprocess.Popen([app_path, script_path, *arguments], creationflags=subprocess.CREATE_NEW_CONSOLE)
                     os.chdir(SETTINGS.working_dir)
                     ret=proc.wait()
                 except KeyboardInterrupt:
