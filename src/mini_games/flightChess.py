@@ -7,6 +7,7 @@ import pygame as pg
 refresh_all = True  # 重新渲染全部元素
 screen_size = (640, 640)
 root = pg.display.set_mode(screen_size, pg.RESIZABLE)
+pg.display.set_caption('Flight Chess')
 clock = pg.time.Clock()
 
 POINTS_COORD = {(0, 0): (52, 370), (0, 1): (54, 330), (0, 2): (54, 286), (0, 3): (70, 238), (0, 4): (118, 222), (0, 5): (160, 224), (0, 6): (206, 238), (0, 7): (240, 206), (0, 8): (224, 160), (0, 9): (224, 118), (0, 10): (238, 70), (0, 11): (288, 54), (0, 12): (330, 54), (0, 13): (374, 54), (0, 14): (414, 54), (0, 15): (458, 54), (0, 16): (506, 70), (0, 17): (522, 118), (0, 18): (522, 160), (0, 19): (506, 206), (0, 20): (538, 242), (0, 21): (584, 226), (0, 22): (626, 224), (0, 23): (674, 240), (0, 24): (690, 288), (0, 25): (690, 330), (0, 26): (690, 372), (0, 27): (690, 414), (0, 28): (690, 458), (0, 29): (674, 506), (0, 30): (626, 522), (0, 31): (584, 520), (0, 32): (538, 506), (0, 33): (504, 538), (0, 34): (520, 584), (0, 35): (522, 626), (0, 36): (504, 674), (0, 37): (456, 690), (0, 38): (414, 688), (0, 39): (372, 690), (0, 40): (330, 690), (0, 41): (286, 690), (0, 42): (238, 674), (0, 43): (224, 626), (0, 44): (224, 582), (0, 45): (238, 538), (0, 46): (206, 502), (0, 47): (
@@ -28,6 +29,8 @@ FPS = 20
 
 IMG_ROOT = os.path.abspath('../../assets/flightchess/')
 FLIGHT_PICS = [Im.open(os.path.join(IMG_ROOT, f"icon_{clr}.png")) for clr in ['red', 'yellow', 'blue', 'green']]
+FINAL_PICS = [im.copy().convert('LA').convert('RGBA') for im in FLIGHT_PICS]
+pg.display.set_icon(pg.image.load(os.path.join(IMG_ROOT, 'icon_red.png')))
 
 ANIMATION_DURATION1 = 0.2
 ANIMATION_DURATION2 = 0.5
@@ -49,13 +52,13 @@ AUTO_ALWAYS_FIRST = 3
 AUTO_ALWAYS_LAST = 5
 AUTO_ALWAYS_FIGHT = 9
 AUTO_ALWAYS_RANDOM = 17
-operation_mode = [AUTO_ALWAYS_FIGHT, AUTO_ALWAYS_FIRST, AUTO_ALWAYS_LAST, AUTO_ALWAYS_RANDOM]
+operation_mode = [AUTO_ALWAYS_FIGHT,AUTO_ALWAYS_FIGHT,AUTO_ALWAYS_FIGHT,AUTO_ALWAYS_FIGHT]
 
 # 选择时候的半黑屏
-DARK_COVERS = [Im.new('RGBA', (780, 780), (100, 0, 0, 100)),
-               Im.new('RGBA', (780, 780), (50, 50, 0, 100)),
-               Im.new('RGBA', (780, 780), (0, 0, 100, 100)),
-               Im.new('RGBA', (780, 780), (0, 100, 0, 100))]
+DARK_COVERS = [Im.new('RGBA', (780, 780), (0, 0, 0, 180)),
+               Im.new('RGBA', (780, 780), (0, 0, 0, 180)),
+               Im.new('RGBA', (780, 780), (0, 0, 0, 180)),
+               Im.new('RGBA', (780, 780), (0, 0, 0, 180))]
 
 # 已经赢力
 victory = [0, 0, 0, 0]
@@ -261,6 +264,8 @@ class Flight:
         self.picture.refresh()
 
     def show(self):
+        if self.arrival:
+            self.picture=Picture(FINAL_PICS[self.color], scaling, self.picture.position0)
         self.picture.show()
 
     def evaluate(self, point: int):

@@ -7,8 +7,10 @@ import pygame as pg
 WIDTH = 960
 HEIGHT = 480
 FPS = 30
+TPS = 300
+TPS_over_FPS = TPS // FPS
 FIREWORK_ACCELERATION = 1
-FIREWORK_GAP = 5
+FIREWORK_GAP = 5 * TPS_over_FPS
 
 IMAGE_ROOT = os.path.abspath('../../assets/numguess/')
 WORKING_DIR = os.path.join(os.environ['APPDATA'], 'PyScriptX', 'MyToolkits') # from settings.py
@@ -166,12 +168,14 @@ class Textshow:
             self.image.tobytes(), self.size, 'RGBA')
         Textshow.texts.append(self)
 
-    def show(self, pos=(0, 0)):
-        self.main.window.blit(self.cover, pos)
+    def tick(self, pos=(0, 0)):
         self.time -= 1
         if not self.time:
             Textshow.texts.remove(self)
             del self
+
+    def show(self, pos=(0, 0)):
+        self.main.window.blit(self.cover, pos)
 
 
 class Dragger:
@@ -231,7 +235,7 @@ class Dragger:
                         and self.y <= mousepos[1] < self.y+self.size[1]:
                     self.mouseup = True
 
-    def show(self):
+    def tick(self):
         if self.mousedown:
             mousepos = pg.mouse.get_pos()
             self.x = mousepos[0]-self.mousepos_offset[0]
@@ -266,8 +270,20 @@ class Dragger:
                 self.fellow.x = self.x+self.size[0]
                 self.fellow.y = self.y+0
 
+    def show(self):
         self.main.window.blit(self.cover, (self.x, self.y))
 
+    # for sort
+    def __lt__(self, other):
+        pivot = self
+        while pivot.fellow is not None:
+            if pivot.fellow is other:
+                return True
+            if pivot.fellow is pivot:
+                pivot.fellow = None
+                break
+            pivot = pivot.fellow
+        return False
 
 class TrashBin(Dragger):
     def __init__(self, maingame, textcolor=(255, 255, 255, 255), backgroundcolor=(255, 0, 0, 63)) -> None:
@@ -399,11 +415,10 @@ class Firework:
 
         self.time = randint(10, 20)
 
-    def show(self):
+    def tick(self):
         self.x += self.vx
         self.y += self.vy
         self.vy += self.ay
-        self.window.blit(self.pictures[-1], (self.x, self.y))
 
         self.time -= 1
         self.game.fireworks.append(FireTrace(self))
@@ -418,6 +433,9 @@ class Firework:
             self.game.fireworks.append(FireBlast(self, 5, -5))
             self.game.fireworks.remove(self)
 
+    def show(self):
+        self.window.blit(self.pictures[-1], (self.x, self.y))
+
 
 class FireTrace:
     def __init__(self, firework: Firework):
@@ -426,12 +444,13 @@ class FireTrace:
         self.y = firework.y+0
         self.time = 8
 
-    def show(self):
-        self.firework.window.blit(
-            self.firework.pictures[self.time], (self.x, self.y))
+    def tick(self):
         self.time -= 1
         if self.time < 0:
             self.firework.game.fireworks.remove(self)
+
+    def show(self):
+        self.firework.window.blit(self.firework.pictures[self.time], (self.x, self.y))
 
 
 class FireBlast:
@@ -447,21 +466,24 @@ class FireBlast:
 
         self.time = 49
 
-    def show(self):
+    def tick(self):
         self.x += self.vx
         self.y += self.vy
         self.vy += self.ay
-        self.window.blit(self.pictures[self.time//5], (self.x, self.y))
 
         self.time -= 1
         self.game.fireworks.append(FireTrace(self))
         if self.time < 0:
             self.game.fireworks.remove(self)
 
+    def show(self):
+        self.window.blit(self.pictures[self.time//5], (self.x, self.y))
+
 
 class MainGame:
     def __init__(self) -> None:
         self.window = pg.display.set_mode((WIDTH, HEIGHT))
+        pg.display.set_caption('Point 24 Game')
         pg.display.set_icon(ICON)
         self.clock = pg.time.Clock()
         self.game = Game(self)
@@ -471,34 +493,44 @@ class MainGame:
 
     def mainloop(self):
         while True:
-            self.clock.tick(FPS)
             self.window.blit(BACKGROUND, (0, 0))
 
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    self.quit()
-                elif event.type == pg.MOUSEBUTTONDOWN:
-                    # print(pg.mouse.get_pos())
-                    pass
-                elif event.type == pg.MOUSEBUTTONUP:
-                    self.game.refresh_buttons()
+            for _ in range(TPS_over_FPS):
+                self.clock.tick(TPS)
+                for event in pg.event.get():
+                    if event.type == pg.QUIT:
+                        self.quit()
+                    elif event.type == pg.MOUSEBUTTONDOWN:
+                        # print(pg.mouse.get_pos())
+                        pass
+                    elif event.type == pg.MOUSEBUTTONUP:
+                        self.game.refresh_buttons()
+                    for dragger in Dragger.draggers:
+                        dragger.dealevent(event)
+                    Dragger.trashbin.dealevent(event)
+                    for button in Button.buttons:
+                        button.dealevent(event)
+
+                
+                Dragger.draggers.sort()
+
+                if self.game.victory():
+                    self.victory()
+
                 for dragger in Dragger.draggers:
-                    dragger.dealevent(event)
-                Dragger.trashbin.dealevent(event)
-                for button in Button.buttons:
-                    button.dealevent(event)
-
-            if self.game.victory():
-                self.victory()
-
+                    dragger.tick()
+                for text in Textshow.texts:
+                    text.tick()
+                    
+            
             for button in Button.buttons:
                 button.show()
-            Dragger.trashbin.show()
             for dragger in Dragger.draggers:
                 dragger.show()
             for text in Textshow.texts:
                 text.show()
             for firework in self.fireworks:
+                firework.tick()
                 firework.show()
 
             pg.display.update()
