@@ -66,12 +66,26 @@ class OtherToolsWidget(WidgetBox):
             width=300, 
             bg_color=QColor(200, 100, 200)
         )
+        self.bpm_checker_button = PushButton(
+            onclick=self.run_bpm_checker, 
+            text="Measure BPM", 
+            width = 220, 
+            bg_color=QColor(150, 100, 200)
+        )
+        self.quinifier_button = PushButton(
+            onclick=self.run_quinifier, 
+            text = "Quinify", 
+            width = 150, 
+            bg_color= QColor(150, 200, 100)
+        )
 
         self.addWidget(self.word_counter_button)
         self.addWidget(self.hex_quickview_button)
         self.addWidget(self.qr_scanner_button)
         self.addWidget(self.scdach_calendar_button)
         self.addWidget(self.schedule_achievements_button)
+        self.addWidget(self.bpm_checker_button)
+        self.addWidget(self.quinifier_button)
 
         self.tempfile = os.path.join(SETTINGS.working_dir, 'other_tools_temp.txt')
         self.tempimagefile = os.path.join(SETTINGS.working_dir, 'other_tools_temp_image.png')
@@ -108,6 +122,15 @@ class OtherToolsWidget(WidgetBox):
     
     def run_schedule_achievements(self):
         return run_script(self.master, os.path.join('ScdAch', 'mainmenu.py'))
+    
+    def run_bpm_checker(self):
+        return run_script(self.master, os.path.join('mini_games', 'bpmfft2.pyw'))
+
+    def run_quinifier(self):
+        fp = get_clipboard_file_paths()
+        if fp and (fp.endswith('.py') or fp.endswith('.pyw')):
+            return run_tool(self.master, 'quinify_quine.py', fp[0])
+        return run_tool(self.master, 'quinify_quine.py')
 
     def close(self):
         if os.path.exists(self.tempfile):
