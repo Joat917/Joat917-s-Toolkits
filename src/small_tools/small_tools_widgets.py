@@ -45,7 +45,7 @@ class OtherToolsWidget(WidgetBox):
         self.hex_quickview_button = PushButton(
             onclick=self.run_hex_quickview, 
             text="Raw Hex Previewer", 
-            width=260, 
+            width=270, 
             bg_color=QColor(100, 200, 200)
         )
         self.qr_scanner_button = PushButton(
@@ -56,20 +56,20 @@ class OtherToolsWidget(WidgetBox):
         )
         self.scdach_calendar_button = PushButton(
             onclick=self.run_scdach_calendar, 
-            text="ScdAch Calendar", 
-            width=230, 
+            text="Calendar", 
+            width=160, 
             bg_color=QColor(150, 100, 250)
         )
         self.schedule_achievements_button = PushButton(
             onclick=self.run_schedule_achievements, 
-            text="Schedule Achievements", 
-            width=300, 
+            text="SchAchievements", 
+            width=260, 
             bg_color=QColor(200, 100, 200)
         )
         self.bpm_checker_button = PushButton(
             onclick=self.run_bpm_checker, 
-            text="Measure BPM", 
-            width = 220, 
+            text="BPM Counter", 
+            width = 210, 
             bg_color=QColor(150, 100, 200)
         )
         self.quinifier_button = PushButton(
@@ -78,14 +78,30 @@ class OtherToolsWidget(WidgetBox):
             width = 150, 
             bg_color= QColor(150, 200, 100)
         )
+        self.mojibake_button = PushButton(
+            onclick=self.run_mojibake, 
+            text = "Text Corrupter", 
+            width = 220, 
+            bg_color= QColor(200, 150, 100)
+        )
 
-        self.addWidget(self.word_counter_button)
+        self.line0 = QHBoxLayout()
+        self.line0.addWidget(self.word_counter_button)
+        self.line0.addWidget(self.bpm_checker_button)
+        self.layout.addLayout(self.line0)
+
         self.addWidget(self.hex_quickview_button)
         self.addWidget(self.qr_scanner_button)
-        self.addWidget(self.scdach_calendar_button)
-        self.addWidget(self.schedule_achievements_button)
-        self.addWidget(self.bpm_checker_button)
-        self.addWidget(self.quinifier_button)
+
+        self.line3 = QHBoxLayout()
+        self.line3.addWidget(self.schedule_achievements_button)
+        self.line3.addWidget(self.scdach_calendar_button)
+        self.layout.addLayout(self.line3)
+        
+        self.line4 = QHBoxLayout()
+        self.line4.addWidget(self.quinifier_button)
+        self.line4.addWidget(self.mojibake_button)
+        self.layout.addLayout(self.line4)
 
         self.tempfile = os.path.join(SETTINGS.working_dir, 'other_tools_temp.txt')
         self.tempimagefile = os.path.join(SETTINGS.working_dir, 'other_tools_temp_image.png')
@@ -131,6 +147,9 @@ class OtherToolsWidget(WidgetBox):
         if fp and (fp.endswith('.py') or fp.endswith('.pyw')):
             return run_tool(self.master, 'quinify_quine.py', fp[0])
         return run_tool(self.master, 'quinify_quine.py')
+    
+    def run_mojibake(self):
+        return run_tool(self.master, 'gushen_coder.py')
 
     def close(self):
         if os.path.exists(self.tempfile):

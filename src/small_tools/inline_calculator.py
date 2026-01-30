@@ -19,8 +19,10 @@ class InlineCalculator(code.InteractiveConsole):
             'import cmath',
             'import random',
             'import time',
-            'from datetime import datetime, timedelta',
-            'from fractions import Fraction',
+            'from datetime import date, datetime, timedelta',
+            'import fractions',
+            'from fractions import Fraction', 
+            'import decimal', 
             'from decimal import Decimal',
             'import collections', 
             'import itertools',
@@ -35,8 +37,13 @@ class InlineCalculator(code.InteractiveConsole):
             'from PIL import Image, ImageDraw, ImageFont',
             'from unitex_jsrunner import convert as unitex', 
             'from pyperclip import copy, paste', 
-            '__import__("os").system("title Inline Calculator") and None or None' if os.name == 'nt' else '',
-            f'__import__("os").chdir({os.path.abspath(os.path.expanduser("~"))!r})'
+            'import os', 
+            'import sys', 
+            'import json', 
+            'import base64', 
+            'import hashlib',
+            'os.system("title Inline Calculator") and None or None' if os.name == 'nt' else '',
+            f'os.chdir({os.path.abspath(os.path.expanduser("~"))!r})'
         ]:
             self.push(command)
 
