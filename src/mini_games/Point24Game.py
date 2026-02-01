@@ -3,6 +3,7 @@ from random import randint
 import os, sys
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "shutup"
 import pygame as pg
+from point24lib2 import has_solution
 
 WIDTH = 960
 HEIGHT = 480
@@ -48,78 +49,6 @@ def Txt2Img(text: str, size=(0, 0), color=(255, 255, 255, 255)):
 
     return pg.image.frombuffer(
         canavas.tobytes(), size, "RGBA")
-
-
-class Attack:
-    @staticmethod
-    def fullarrange(*var):
-        var = list(var)
-        if len(var) <= 1:
-            return var
-        if len(var) == 2:
-            if var[0] == var[1]:
-                return [var]
-            else:
-                return [var, var[::-1]]
-        else:
-            out = []
-            L = Attack.fullarrange(*var[1:])
-            for i in L:
-                for j in range(len(i)+1):
-                    temp = i+[]
-                    temp.insert(j, var[0])
-                    out.append(temp)
-            # no repeat
-            output = []
-            for i in out:
-                if i not in output:
-                    output.append(i)
-            return output
-
-    @staticmethod
-    def output_to_text(out):
-        if not out:
-            return "No solution"
-        t = 0
-        L = 6
-        output = ""
-        out = list(out)
-        while out[L*t: L*t+L]:
-            output += "\t".join(out[L*t: L*t+L])
-            output += "\n"
-            t += 1
-        return output
-
-    def __init__(self, a, b, c, d):
-        self.outputs = set()
-        for i in "+-*/":
-            for j in "+-*/":
-                for k in "+-*/":
-                    text = f"(%i%s%i)%s(%i%s%i)" % (a, i, b, j, c, k, d)
-                    self.exam(text)
-                    text = f"(%i%s%i)%s(%i%s%i)" % (a, i, c, j, b, k, d)
-                    self.exam(text)
-                    text = f"(%i%s%i)%s(%i%s%i)" % (a, i, d, j, b, k, c)
-                    self.exam(text)
-                    for p, q, r, s in Attack.fullarrange(a, b, c, d):
-                        text = "((%i%s%i)%s%i)%s%i" % (p, i, q, j, r, k, s)
-                        self.exam(text)
-                        text = "(%i%s(%i%s%i))%s%i" % (p, i, q, j, r, k, s)
-                        self.exam(text)
-                        text = "%i%s((%i%s%i)%s%i)" % (p, i, q, j, r, k, s)
-                        self.exam(text)
-                        text = "%i%s(%i%s(%i%s%i))" % (p, i, q, j, r, k, s)
-                        self.exam(text)
-
-    def exam(self, text):
-        try:
-            if eval(text) == 24:
-                self.outputs.add(text)
-        except Exception as e:
-            pass
-
-    def __str__(self):
-        return Attack.output_to_text(self.outputs)
 
 
 class Button:
@@ -295,9 +224,9 @@ class TrashBin(Dragger):
 class Game:
     def __init__(self, maingame, buttoninit=True) -> None:
         self.main = maingame
-        self.numbers = [randint(1, 13) for i in range(4)]
-        while not Attack(*self.numbers).outputs:
-            self.numbers = [randint(1, 13) for i in range(4)]
+        self.numbers = [randint(1, 13) for _ in range(4)]
+        while not has_solution(self.numbers):
+            self.numbers = [randint(1, 13) for _ in range(4)]
 
         Dragger.expression_dragger = Dragger(self.main, 30, 350, ">>>", backgroundcolor=(127, 216, 30, 216), eraseable=False)
         for i in range(4):
@@ -325,42 +254,6 @@ class Game:
 
         if buttoninit:
             self.refresh_buttons()
-            # Button(self.main, 30, 120, Dragger, size=(60, 80),
-            #        funcargs=(self.main, 30, 220, "+"),
-            #        funckwargs={"size": (60, 80), "backgroundcolor": (
-            #            randint(127, 255), randint(127, 255), randint(127, 255), 63)},
-            #        text="+", backgroundcolor=(randint(127, 255), randint(127, 255),
-            #                                   randint(127, 255), 216))
-            # Button(self.main, 110, 120, Dragger, size=(60, 80),
-            #        funcargs=(self.main, 110, 220, "-"),
-            #        funckwargs={"size": (60, 80), "backgroundcolor": (
-            #            randint(127, 255), randint(127, 255), randint(127, 255), 63)},
-            #        text="-", backgroundcolor=(randint(127, 255), randint(127, 255),
-            #                                   randint(127, 255), 216))
-            # Button(self.main, 190, 120, Dragger, size=(60, 80),
-            #        funcargs=(self.main, 190, 220, "*"),
-            #        funckwargs={"size": (60, 80), "backgroundcolor": (
-            #            randint(127, 255), randint(127, 255), randint(127, 255), 63)},
-            #        text="*", backgroundcolor=(randint(127, 255), randint(127, 255),
-            #                                   randint(127, 255), 216))
-            # Button(self.main, 270, 120, Dragger, size=(60, 80),
-            #        funcargs=(self.main, 270, 220, "/"),
-            #        funckwargs={"size": (60, 80), "backgroundcolor": (
-            #            randint(127, 255), randint(127, 255), randint(127, 255), 63)},
-            #        text="/", backgroundcolor=(randint(127, 255), randint(127, 255),
-            #                                   randint(127, 255), 216))
-            # Button(self.main, 350, 120, Dragger, size=(60, 80),
-            #        funcargs=(self.main, 350, 220, "("),
-            #        funckwargs={"size": (60, 80), "backgroundcolor": (
-            #            randint(127, 255), randint(127, 255), randint(127, 255), 63)},
-            #        text="(", backgroundcolor=(randint(127, 255), randint(127, 255),
-            #                                   randint(127, 255), 216))
-            # Button(self.main, 430, 120, Dragger, size=(60, 80),
-            #        funcargs=(self.main, 430, 220, ")"),
-            #        funckwargs={"size": (60, 80), "backgroundcolor": (
-            #            randint(127, 255), randint(127, 255), randint(127, 255), 63)},
-            #        text=")", backgroundcolor=(randint(127, 255), randint(127, 255),
-            #                                   randint(127, 255), 216))
             Button(self.main, 750, 380, self.main.replay, (140, 90), "RePlay",
                    backgroundcolor=(randint(127, 255), randint(127, 255), randint(127, 255), 216))
 
