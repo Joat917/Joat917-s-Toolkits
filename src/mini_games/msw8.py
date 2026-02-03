@@ -6,14 +6,15 @@ import pygame as pg
 from math import sqrt
 from time import time
 from traceback import format_exc
+from mswlib import MineFieldNoLosing, MineFieldAdvisor
 
 SCREEN_WIDTH = 960
 SCREEN_HEIGHT = 540
 FPS = 20
 SCREEN_SIZE = (SCREEN_WIDTH, SCREEN_WIDTH)
 
-MF_DEBUG = False
-PROGRESS_DEBUG = False
+MF_DEBUG = True
+PROGRESS_DEBUG = True
 RECHECK_DEBUG = False
 
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -52,9 +53,9 @@ evolution_alpha=0.5
 def init():
     global root
     pg.init()
-    root = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pg.display.set_caption("Minesweeper 8")
     pg.display.set_icon(pg.image.load("../../assets/icon.png"))
+    root = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     return root
 
 
@@ -87,453 +88,143 @@ class GameExit(RuntimeError):
     pass
 
 
-def around(pos: tuple):
-    out = []
-    out.append((pos[0], pos[1]+1))
-    out.append((pos[0]+1, pos[1]+1))
-    out.append((pos[0]+1, pos[1]))
-    out.append((pos[0]+1, pos[1]-1))
-    out.append((pos[0], pos[1]-1))
-    out.append((pos[0]-1, pos[1]-1))
-    out.append((pos[0]-1, pos[1]))
-    out.append((pos[0]-1, pos[1]+1))
-    return out
-
-
-def square(pos: tuple):
-    return [pos]+around(pos)
-
-
-class Minefield:
+class MinefieldWrapped:
+    "用于对接旧逻辑接口的扫雷类"
     def __init__(self, cols: int, rows: int, mines: int, first_click=None) -> None:
         self.rows = rows
         self.cols = cols
         self.mines = mines
-
-        # 初始化雷场（content）&（cover）
-        # self.content = [[0]*(self.cols+2)]*(self.rows+2)
-        # self.cover = [[0]*(self.cols+2)]*(self.rows+2)
-        # 这是错的！！！
-
-        self.content = []
-        for i in range(self.rows+2):
-            temp = [0]*(self.cols+2)
-            self.content.append(temp)
-
-        self.cover = []
-        for i in range(self.rows+2):
-            temp = [0]*(self.cols+2)
-            self.cover.append(temp)
-        # 小心这里遇到的问题！
-
-        # 为了防止扫雷扫到外面去，需要把cover最外面一圈设置为1（没事的不会挖到另一边的）！！！
-        for i in range(len(self.cover[0])):
-            self.cover[0][i] = 1
-            self.cover[-1][i] = 1
-        for i in range(len(self.cover)):
-            self.cover[i][0] = 1
-            self.cover[i][-1] = 1
-
-        self.minecontent = set()
-
-        # 设置地雷
-        while len(self.minecontent) < self.mines:
-            candidate = (randint(1, self.cols), randint(1, self.rows))
-            # 检验first_click
-            if first_click != None:
-                if candidate in square(first_click):
-                    continue
-            self.minecontent.add(candidate)
-
-        # Set content
-        for pos in self.minecontent:
-            # 对每一个有mine的方块周围一圈加上1，自己加上9
-            self.content[pos[1]][pos[0]] += 9
-            for poss in around(pos):
-                self.content[poss[1]][poss[0]] += 1
-
-        # Set Cover
-        # 0表示未被挖开，1表示被挖开，2表示插着旗子，3或以上表示标记
-
-        self._buffer_suggestion = [
-            [None]*(self.cols+2) for i in range(self.rows+2)]
-        self.suggestion_changed = True
-        pass
-
-    def __repr__(self) -> str:
-        out = " |"
-        # 制作表头
-        out += "|".join(ALPHABET[:self.cols])
-        out += "\n"
-
-        for row in range(1, self.rows+1):
-            temp = ""
-            # 制作航投
-            temp += NUMBERS[row-1]+"|"
-            # 读取这一行的数据
-            data = self.content[row]
-            for col in range(1, self.cols+1):
-                if data[col] == 0:
-                    temp += " |"
-                else:
-                    temp += NUMBERS[data[col]-1]+"|"
-            # 去掉最后一个竖杠
-            temp = temp[:-1]
-            # 加上去
-            out += temp+"\n"
-        return out
-
-    def __iter__(self):
-        out = []
-        for row in range(1, self.rows+1):
-            for col in range(1, self.cols+1):
-                out.append((col, row))
-        return iter(out)
-
-    def show(self) -> str:
-        out = " |"
-        # 制作表头
-        out += "|".join(ALPHABET[:self.cols])
-        out += "\n"
-
-        for row in range(1, self.rows+1):
-            temp = ""
-            # 制作航投
-            temp += NUMBERS[row-1]+"|"
-            # 读取这一行的数据
-            data = self.cover[row]
-            for col in range(1, self.cols+1):
-                if data[col] == 0:
-                    temp += "?|"
-                elif data[col] == 1:
-                    temp += NUMBERS[self.content[row][col]-1]+"|"  # !
-                elif data[col] == 2:
-                    temp += "f|"
-                else:
-                    temp += "!|"
-            # 去掉最后一个竖杠
-            temp = temp[:-1]
-            # 加上去
-            out += temp+"\n"
-        return out
+        self.minefield = MineFieldNoLosing(rows=rows, cols=cols, mines=mines, first_click_pos=(first_click[1]-1, first_click[0]-1) if (first_click is not None) else None)
+        self.advisor = MineFieldAdvisor(self.minefield)
+        self._buffer_suggestion = [[mines/(rows*cols) for _ in range(self.cols+2)] for _ in range(self.rows+2)]
 
     def dig(self, col: int, row: int):
         if MF_DEBUG:
             print(f"Dig: %i,%i" % (col, row))
-        if self.cover[row][col] == 1:
-            return False
-        if self.cover[row][col] != 2:  # 如果没有旗子插着，就把它挖掉
-            self.cover[row][col] = 1
-            # 判断是否炸裂
-            if self.content[row][col] >= 9:
-                Info_Notice("The minefield blows up!!!")  # 炸了
-            if self.content[row][col] == 0:
-                self.sweep(col, row)
-            self.suggestion_changed = True
-            return True
+        ret_val = self.minefield.dig((row-1, col-1))
+        if MF_DEBUG:
+            print(self.minefield)
+        return ret_val
 
     def sweep(self, col: int, row: int):
         """挖开一圈"""
         if MF_DEBUG:
             print(f"Sweep: %i,%i" % (col, row))
-        # 是否插满足够多旗子
-        flagged_count = sum(int(self.cover[block[1]][block[0]] == 2) for block in around((col, row)))
-        if flagged_count < self.content[row][col]:
-            return False
-        
-        if any([self.dig(*block) for block in around((col, row))]):
-            self.suggestion_changed = True
-            return True
-        else:
-            return False
+        ret_val = self.minefield.digaround((row-1, col-1))
+        if MF_DEBUG:
+            print(self.minefield)
+        return ret_val
 
     def flag(self, col: int, row: int):
         "插上或拔去旗子"
         if MF_DEBUG:
             print("Flag: %i,%i" % (col, row))
-        if self.cover[row][col] == 0:
-            self.cover[row][col] = 2
-            self.suggestion_changed = True
-            return True
-        elif self.cover[row][col] == 2:
-            self.cover[row][col] = 3
-            self.suggestion_changed = True
-            return True
-        elif self.cover[row][col] >= 3:
-            self.cover[row][col] = 0
-            self.suggestion_changed = True
-            return True
+        ret_val = self.minefield.flag((row-1, col-1))
+        if MF_DEBUG:
+            print(self.minefield)
+        return ret_val
 
     def fullflag(self, col: int, row: int):
         """插完一圈旗子"""
-        if any([self.flag(*block) for block in around((col, row))]):
-            self.suggestion_changed = True
-            return True
-        else:
-            return False
+        return self.minefield.flagaround((row-1, col-1))
+    
+    def digall(self):
+        for pos in self.minefield.all_places():
+            if self.minefield.is_mine(pos):
+                continue
+            if self.minefield.is_flag(pos):
+                self.minefield.flag(pos)
+            self.minefield.dig(pos)
+        return
 
     def safety(self):
-        for col, row in self:
-            if self.content[row][col] >= 9:
-                if self.cover[row][col] == 1:
-                    print(0)
-                    return False
-        return True
+        return not self.minefield.is_dead()
 
     def is_victory(self):
-        for col, row in self:
-            if self.content[row][col] < 9:
-                if self.cover[row][col] != 1:
-                    return False
-        return True
+        return self.minefield.is_safe()
 
     def get_suggestion(self):
-        # 初始化
-        self.suggestion_changed = False
-        self._buffer_suggestion = [
-            [None]*(self.cols+2) for i in range(self.rows+2)]
-        _changed = False
-
-        # 所有有雷的点
-        points_has_mine = []
-        for col, row in self:
-            if self.cover[row][col] == 2 or (self.cover[row][col] == 1 and self.content[row][col] >= 9):
-                points_has_mine.append((col, row))
-
-        # 所有含有数字的点
-        points_with_number = []
-        for col, row in self:
-            if self.cover[row][col] == 1 and 1 <= self.content[row][col] <= 8:
-                points_with_number.append((col, row))
-
-        # 找出需要推理的点
-        points_need_suggest = []
-        for col, row in self:
-            if self.cover[row][col] not in [1, 2]:
-                points_need_suggest.append((col, row))
-        
-        # 排除确定性的点
-        points_determined_has_mine = []
-        points_determined_safe = []
-        changed = True
-        while changed:
-            changed = False
-            for col, row in points_with_number:
-                mines_expected = self.content[row][col]
-                mines_marked = [pos for pos in around((col, row)) if pos in points_has_mine or pos in points_determined_has_mine]
-                blocks_unknown = [pos for pos in around((col, row)) if pos in points_need_suggest and pos not in points_determined_safe and pos not in points_determined_has_mine]
-                mines_marked_count = len(mines_marked)
-                blocks_unknown_count = len(blocks_unknown)
-                if mines_expected == mines_marked_count:
-                    # 周围的未知点全部安全
-                    for pos in blocks_unknown:
-                        self._buffer_suggestion[pos[1]][pos[0]] = 0
-                        if pos in points_need_suggest:
-                            points_determined_safe.append(pos)
-                            changed = True
-                elif mines_expected - mines_marked_count >= blocks_unknown_count:
-                    # 周围的未知点全部是雷
-                    for pos in blocks_unknown:
-                        self._buffer_suggestion[pos[1]][pos[0]] = 1
-                        if pos in points_need_suggest:
-                            points_determined_has_mine.append(pos)
-                            changed = True
+        if self.advisor._needs_recalculation():
+            self.advisor.analyze()
+            for pos in self.minefield.all_places():
+                row,col=pos
+                if self.minefield.is_exposed(pos) or self.minefield.is_flag(pos):
+                    self._buffer_suggestion[row+1][col+1] = None
+                elif self.advisor.confident_suggestions[pos]==1:
+                    self._buffer_suggestion[row+1][col+1] = 0
+                elif self.advisor.confident_suggestions[pos]==2:
+                    self._buffer_suggestion[row+1][col+1] = 1
+                elif self.advisor.probability_suggestions[pos]!=-1:
+                    self._buffer_suggestion[row+1][col+1] = self.advisor.probability_suggestions[pos]
                 else:
-                    for pos in blocks_unknown:
-                        self._buffer_suggestion[pos[1]][pos[0]] = (mines_expected - mines_marked_count) / blocks_unknown_count
-
-        points_exposed = [pos for pos in points_need_suggest if self._buffer_suggestion[pos[1]][pos[0]] is not None and pos not in points_determined_has_mine and pos not in points_determined_safe]
-        points_unexposed = [pos for pos in points_need_suggest if self._buffer_suggestion[pos[1]][pos[0]] is None]
-        
-        # 构建邻接表加速运算
-        neighboring_unknown_blocks = {}
-        neighboring_mines_left = {}
-        for col, row in points_with_number:
-            neighboring_unknown_blocks[(col, row)] = [pos for pos in around((col, row)) if pos in points_exposed]
-            if not neighboring_unknown_blocks[(col, row)]:
-                neighboring_unknown_blocks.pop((col, row))
-                continue
-            neighboring_mines_left[(col, row)] = self.content[row][col] - len([pos for pos in around((col, row)) if pos in points_has_mine or pos in points_determined_has_mine])
-
-        neighboring_unknown_blocks_keys = list(neighboring_unknown_blocks.keys())
-        for _repeat in range(1000):
-            if not points_exposed:
-                for pos in points_unexposed:
-                    self._buffer_suggestion[pos[1]][pos[0]] = (self.mines-len(points_has_mine)-len(points_determined_has_mine)) / len(points_unexposed)
-                break
-
-            max_err = 0.0
-            shuffle(neighboring_unknown_blocks_keys)
-            for (col, row) in neighboring_unknown_blocks_keys:
-                blocks_unknown = neighboring_unknown_blocks[(col, row)]
-                if not blocks_unknown:
-                    continue
-                mines_left = neighboring_mines_left.get((col, row), 0)
-                current_mines_left = sum(self._buffer_suggestion[pos[1]][pos[0]] for pos in blocks_unknown)
-                difference = mines_left - current_mines_left
-                max_err = max(max_err, abs(difference))
-                for pos in blocks_unknown:
-                    self._buffer_suggestion[pos[1]][pos[0]] += difference / len(blocks_unknown)
-                    self._buffer_suggestion[pos[1]][pos[0]] = max(0.0, min(1.0, self._buffer_suggestion[pos[1]][pos[0]]))
-                
-            sum_of_mine_counts = sum(self._buffer_suggestion[pos[1]][pos[0]] for pos in points_exposed)
-            mine_leftover = self.mines - len(points_has_mine) - len(points_determined_has_mine)
-            if sum_of_mine_counts >= mine_leftover and not (sum_of_mine_counts==mine_leftover==0):
-                for _ in range(10):
-                    if not sum_of_mine_counts > mine_leftover+1e-6:
-                        break
-                    for pos in points_exposed:
-                        self._buffer_suggestion[pos[1]][pos[0]] -= (sum_of_mine_counts - mine_leftover) / len(points_exposed)
-                        self._buffer_suggestion[pos[1]][pos[0]] = max(0.0, min(1.0, self._buffer_suggestion[pos[1]][pos[0]]))
-                sum_of_mine_counts = mine_leftover
-
-            for pos in points_unexposed:
-                self._buffer_suggestion[pos[1]][pos[0]] = (mine_leftover - sum_of_mine_counts) / len(points_unexposed)
-                self._buffer_suggestion[pos[1]][pos[0]] = max(0.0, min(1.0, self._buffer_suggestion[pos[1]][pos[0]]))
-
-            if max_err < 0.001:
-                break
-        else:
-            if 0:
-                print(max_err)
-
-        # for col, row in self:
-        #     if self.cover[row][col] == 1 and 1 <= self.content[row][col] <= 8:
-        #         _minecount = self.content[row][col]
-        #         _markedmines = 0
-        #         for col2, row2 in around((col, row)):
-        #             if self.cover[row2][col2] == 2 or self.cover[row2][col2] == 1 and self.content[row2][col2] >= 9:
-        #                 _markedmines += 1
-        #         if _minecount == _markedmines:
-        #             for col2, row2 in around((col, row)):
-        #                 if self.cover[row2][col2] in [0, 3, 4, 5, 6, 7, 8, 9]:
-        #                     self._buffer_suggestion[row2][col2] = 0
-        #                     _changed = True
-        #             continue
-        #         elif _minecount > _markedmines:
-        #             _leftblocks = 0
-        #             for col2, row2 in around((col, row)):
-        #                 if self.cover[row2][col2] in [0, 3, 4, 5, 6, 7, 8, 9]:
-        #                     _leftblocks += 1
-        #             if _leftblocks == _minecount-_markedmines:
-        #                 for col2, row2 in around((col, row)):
-        #                     if self.cover[row2][col2] in [0, 3, 4, 5, 6, 7, 8, 9]:
-        #                         self._buffer_suggestion[row2][col2] = 1
-        #                         _changed = True
-        #         else:
-        #             Error_Notice(
-        #                 f"发现({col},{row})处有点啸问题。", "警告").mainloop()
-        #             _changed = True
-        # if _changed:
-        #     for _t in range(32):
-        #         for col3, row3 in self:
-        #             if self.cover[row3][col3] == 1 and 1 <= self.content[row3][col3] <= 8:
-        #                 _minecount = self.content[row3][col3]
-        #                 _markedmines = 0
-        #                 _leftblocks = 0
-        #                 for col2, row2 in around((col3, row3)):
-        #                     if self.cover[row2][col2] == 2 or self.cover[row2][col2] == 1 and self.content[row2][col2] >= 9 or type(self._buffer_suggestion[row2][col2]) == int and self._buffer_suggestion[row2][col2] == 1:
-        #                         _markedmines += 1
-        #                     elif self.cover[row2][col2] in [0, 3, 4, 5, 6, 7, 8, 9] and type(self._buffer_suggestion[row2][col2]) != int:
-        #                         if self._buffer_suggestion[row2][col2] is None:
-        #                             self._buffer_suggestion[row2][col2] = 0.0
-        #                         else:
-        #                             _markedmines += self._buffer_suggestion[row2][col2]
-        #                         _leftblocks += 1
-        #                 if _leftblocks > 0 and _minecount != _markedmines:
-        #                     _addition = (_minecount-_markedmines)/_leftblocks
-        #                     for col2, row2 in around((col3, row3)):
-        #                         if self.cover[row2][col2] in [0, 3, 4, 5, 6, 7, 8, 9] and type(self._buffer_suggestion[row2][col2]) != int:
-        #                             self._buffer_suggestion[row2][col2] += _addition
-        #                             if self._buffer_suggestion[row2][col2] > 1.0:
-        #                                 self._buffer_suggestion[row2][col2] = 0.999999
-        #                             elif self._buffer_suggestion[row2][col2] < 0.0:
-        #                                 self._buffer_suggestion[row2][col2] = 0.000001
-        #     _leftmines = self.mines
-        #     _leftblocks = 0
-        #     for col3, row3 in self:
-        #         if self.cover[row3][col3] in [0, 3, 4, 5, 6, 7, 8, 9]:
-        #             if self._buffer_suggestion[row3][col3] is None:
-        #                 _leftblocks += 1
-        #             else:
-        #                 _leftmines -= self._buffer_suggestion[row3][col3]
-        #         elif self.cover[row3][col3] == 2 or self.cover[row3][col3] == 1 and self.content[row3][col3] >= 9:
-        #             _leftmines -= 1
-        #     for col3, row3 in self:
-        #         if self.cover[row3][col3] in [0, 3, 4, 5, 6, 7, 8, 9] and self._buffer_suggestion[row3][col3] is None:
-        #             self._buffer_suggestion[row3][col3] = _leftmines/_leftblocks
-        #     return
-        # else:
-        #     for _t in range(32):
-        #         for col3, row3 in self:
-        #             if self.cover[row3][col3] == 1 and 1 <= self.content[row3][col3] <= 8:
-        #                 _minecount = self.content[row3][col3]
-        #                 _markedmines = 0
-        #                 _leftblocks = 0
-        #                 for col2, row2 in around((col3, row3)):
-        #                     if self.cover[row2][col2] == 2 or self.cover[row2][col2] == 1 and self.content[row2][col2] >= 9:
-        #                         _markedmines += 1
-        #                     elif self.cover[row2][col2] in [0, 3, 4, 5, 6, 7, 8, 9]:
-        #                         if self._buffer_suggestion[row2][col2] is None:
-        #                             self._buffer_suggestion[row2][col2] = 0.0
-        #                         else:
-        #                             _markedmines += self._buffer_suggestion[row2][col2]
-        #                         _leftblocks += 1
-        #                 if _leftblocks > 0 and _minecount != _markedmines:
-        #                     _addition = (_minecount-_markedmines)/_leftblocks
-        #                     for col2, row2 in around((col3, row3)):
-        #                         if self.cover[row2][col2] in [0, 3, 4, 5, 6, 7, 8, 9]:
-        #                             self._buffer_suggestion[row2][col2] += _addition
-        #                             if self._buffer_suggestion[row2][col2] > 1.0:
-        #                                 self._buffer_suggestion[row2][col2] = 0.999999
-        #                             elif self._buffer_suggestion[row2][col2] < 0.0:
-        #                                 self._buffer_suggestion[row2][col2] = 0.000001
-        #     _leftmines = self.mines
-        #     _leftblocks = 0
-        #     for col3, row3 in self:
-        #         if self.cover[row3][col3] in [0, 3, 4, 5, 6, 7, 8, 9]:
-        #             if self._buffer_suggestion[row3][col3] is None:
-        #                 _leftblocks += 1
-        #             else:
-        #                 _leftmines -= self._buffer_suggestion[row3][col3]
-        #         elif self.cover[row3][col3] == 2 or self.cover[row3][col3] == 1 and self.content[row3][col3] >= 9:
-        #             _leftmines -= 1
-        #     for col3, row3 in self:
-        #         if self.cover[row3][col3] in [0, 3, 4, 5, 6, 7, 8, 9] and self._buffer_suggestion[row3][col3] is None:
-        #             self._buffer_suggestion[row3][col3] = _leftmines/_leftblocks
+                    self._buffer_suggestion[row+1][col+1] = None
 
     def conduct_suggestion(self):
-        _changed = False
-        _maxp = 0.95
-        _minp = 0.05
-        for col, row in self:
-            if self._buffer_suggestion[row][col] is not None and self._buffer_suggestion[row][col] == 1:
-                _changed |= self.flag(col, row)
-            elif self._buffer_suggestion[row][col] is not None and self._buffer_suggestion[row][col] == 0:
-                if RECHECK_DEBUG:
-                    if self.content[row][col] >= 9:
-                        Error_Notice(
-                            f"想要挖去({col},{row})，但是发现这个地方有雷。", "警告").mainloop()
-                        return
-                _changed |= self.dig(col, row)
-            else:
-                if self._buffer_suggestion[row][col] is not None:
-                    _maxp = max(_maxp, self._buffer_suggestion[row][col])
-                    _minp = min(_minp, self._buffer_suggestion[row][col])
-        if not _changed:
-            for col, row in self:
-                if self._buffer_suggestion[row][col] == _maxp:
-                    if self.flag(col, row):
-                        return
-                elif self._buffer_suggestion[row][col] == _minp:
-                    if RECHECK_DEBUG:
-                        if self.content[row][col] >= 9:
-                            Error_Notice(
-                                f"想要挖去({col},{row})，但是发现这个地方有雷。", "警告").mainloop()
+        self.get_suggestion()
+        if self.advisor.conflicting_positions:
+            positions_string = '; '.join(f"{col+1},{row+1}" for row,col in self.advisor.conflicting_positions)
+            Error_Notice(f"发现以下位置的数字无法得到满足：{positions_string}", "警告").mainloop()
+            return
+        changed = False
+        for pos in self.minefield.all_places():
+            if self.advisor.confident_suggestions[pos]==2:
+                changed |= self.minefield.flag(pos)
+            elif self.advisor.confident_suggestions[pos]==1:
+                changed |= self.minefield.dig(pos)
+        if changed:
+            return
+        if (self.advisor.probabilities_max>=0).any():
+            min_of_max_probabilities = self.advisor.probabilities_max[self.advisor.probabilities_max>=0].min()
+            if min_of_max_probabilities <= 0.05:
+                for pos in self.minefield.all_places():
+                    if self.advisor.probability_suggestions[pos] != -1 and self.advisor.probabilities_min[pos]==min_of_max_probabilities:
+                        if RECHECK_DEBUG and self.minefield.is_mine(pos):
+                            Error_Notice(f"想要挖去({pos[1]+1},{pos[0]+1})，但是发现这个地方有雷。", "警告").mainloop()
                             return
-                    if self.dig(col, row):
-                        return
-            Confirm_Notice("无事可做力（悲", "提醒", ["やりますね"]).mainloop()
+                        changed |= self.minefield.dig(pos)
+                        if changed:
+                            return
+        if (self.advisor.probabilities_min>=0).any():
+            max_of_min_probabilities = self.advisor.probabilities_min[self.advisor.probabilities_min>=0].max()
+            if max_of_min_probabilities >= 0.95:
+                for pos in self.minefield.all_places():
+                    if self.advisor.probability_suggestions[pos] != -1 and self.advisor.probabilities_max[pos]==max_of_min_probabilities:
+                        if RECHECK_DEBUG and not self.minefield.is_mine(pos):
+                            Error_Notice(f"想要插旗({pos[1]+1},{pos[0]+1})，但是发现这个地方没有雷。", "警告").mainloop()
+                            return
+                        changed |= self.minefield.flag(pos)
+                        if changed:
+                            return
+
+        Confirm_Notice("无事可做力（悲", "提醒", ["やりますね"]).mainloop()
+
+    def is_cover(self, col, row):
+        return self.minefield.is_covered((row-1, col-1))
+    
+    def is_suspected(self, col, row):
+        return False
+    
+    def is_flag(self, col, row):
+        return self.minefield.is_flag((row-1, col-1))
+    
+    def is_exposed(self, col, row):
+        return self.minefield.is_exposed((row-1, col-1))
+
+    def get_exposed_number(self, col, row):
+        return self.minefield.get_exposed_number((row-1, col-1))
+    
+    def __iter__(self):
+        for row in range(1,self.rows+1):
+            for col in range(1,self.cols+1):
+                yield col,row
+
+    def __str__(self):
+        return str(self.minefield)
+    
+    @property
+    def suggestion(self):
+        self.get_suggestion()
+        return self._buffer_suggestion
 
 
 class BaseObject:
@@ -567,10 +258,11 @@ class BaseObject:
     def handleEvent(self, event: pg.event.Event):
         if event.type == pg.QUIT:
             quitgame()
+        flag = False
         for obj in self.objects[::-1]:
             if obj.handleEvent(event):
-                return True
-        return False
+                flag = True
+        return flag
 
     def tick(self):
         for obj in self.objects:
@@ -1040,8 +732,10 @@ class Game(BaseObject):
     def __init__(self, main, cols, rows, mines, *args) -> None:
         super().__init__(main, (0, 0), SCREEN_SIZE)
         self.window = main.window
-        self.picture = Im.new('RGBA', (1, 1))
-        self.minefield = Minefield(cols, rows, mines)
+        self.picture = Im.new('RGBA', (1, 1), TRANSPARENT)
+        self.minefield = MinefieldWrapped(cols, rows, mines)
+        self.background = BaseObject(main, (0,0), SCREEN_SIZE, BGCOLOR)
+        self.objects.append(self.background)
         # 分配到块：
         # 计算它们分别的位置！
         side_block = min(SCREEN_HEIGHT//self.minefield.rows,
@@ -1075,8 +769,7 @@ class Game(BaseObject):
 
     def tick(self):
         self._conducted = False
-        if self.minefield.suggestion_changed:
-            self.minefield.get_suggestion()
+        self.minefield.get_suggestion()
         super().tick()
         self.whether()
         if self.going == False:
@@ -1084,7 +777,7 @@ class Game(BaseObject):
 
     def refresh(self):
         if MF_DEBUG:
-            print('\r', "refresh of game called", end='')
+            print("Refresh of game called")
         return super().refresh()
 
     def whether(self):
@@ -1099,8 +792,7 @@ class Game(BaseObject):
         # 提示游戏结束
         # 显示所有雷
         print(2, round(time() % 100, 3))
-        for col, row in self.minefield.minecontent:
-            self.minefield.cover[row][col] = 1
+        self.minefield.digall()
         print(3, round(time() % 100, 3))
         self.refresh()
         print(4, round(time() % 100, 3))
@@ -1195,33 +887,36 @@ class Block(BaseObject):
         self.col = xi
         self.row = yi
         self._buffer_showing = -3
+        self._buffer_suggestion = None
 
     def tick(self):
         if self.just_clicked:
             self.just_clicked -= 1/FPS
 
         # showing
-        if self.game.minefield.cover[self.row][self.col] == 0:
+        if self.game.minefield.is_cover(self.col, self.row):
             self.showing = 11
-        elif self.game.minefield.cover[self.row][self.col] == 2:
+        elif self.game.minefield.is_flag(self.col, self.row):
             self.showing = 9
-        elif self.game.minefield.cover[self.row][self.col] >= 3:
+        elif self.game.minefield.is_suspected(self.col, self.row):
             self.showing = 10
-        elif self.game.minefield.cover[self.row][self.col] == 1:
-            self.showing = self.game.minefield.content[self.row][self.col]
+        elif self.game.minefield.is_exposed(self.col, self.row):
+            self.showing = self.game.minefield.get_exposed_number(self.col, self.row)
             if self.showing >= 9:
                 self.showing = 12
         else:
             raise ValueError("cover value incorrect")
-        if self.showing in [10, 11] and self.game.minefield._buffer_suggestion[self.row][self.col] is not None:
-            self.showing = - self.showing + max(0.0, min(1.0, self.game.minefield._buffer_suggestion[self.row][self.col]))
-        if self._buffer_showing != self.showing:
+        
+        if self._buffer_showing != self.showing or self._buffer_suggestion!=self.game.minefield.suggestion[self.row][self.col]:
             self._buffer_showing = self.showing
-            if self.game.minefield._buffer_suggestion[self.row][self.col] is not None:
-                self.picture = Im.new('RGBA', Block.pic[0].size, self.get_color(self.game.minefield._buffer_suggestion[self.row][self.col]))
-                Imd.Draw(self.picture).text((0, 0), "%i%%" % round(100*self.game.minefield._buffer_suggestion[self.row][self.col]), BLACK)
-                if self.game.minefield.cover[self.row][self.col] >= 3:
+            self._buffer_suggestion = self.game.minefield.suggestion[self.row][self.col]
+            if self.showing>=9 and self._buffer_suggestion is not None:
+                self.picture = Im.new('RGBA', Block.pic[0].size, self.get_color(self._buffer_suggestion))
+                Imd.Draw(self.picture).text((0, 0), "%i%%" % round(100*self._buffer_suggestion), BLACK)
+                if self.game.minefield.is_suspected(self.col, self.row):
                     self.picture.paste(Block.pic[10], (0, 0), Block.pic[10].getchannel('A'))
+                elif self.game.minefield.is_flag(self.col, self.row):
+                    self.picture.paste(Block.pic[9], (0, 0), Block.pic[9].getchannel('A'))
             else:
                 self.picture = Block.pic[self.showing]
             self.refresh()
@@ -1237,10 +932,11 @@ class Block(BaseObject):
         button_mouse = event.button
 
         if mouse_pos in self:
+            if MF_DEBUG:
+                print(f"Block ({self.col}, {self.row}) pressed by button {button_mouse}")
             # first click
             if self.game.first_click:
-                self.game.minefield = Minefield(self.game.minefield.cols, self.game.minefield.rows,
-                                                self.game.minefield.mines, (self.col, self.row))
+                self.game.minefield = MinefieldWrapped(self.game.minefield.cols, self.game.minefield.rows, self.game.minefield.mines, (self.col, self.row))
                 self.game.minefield.dig(self.col, self.row)
                 self.game.first_click = False
                 return True
@@ -1268,7 +964,7 @@ class MainMenu(BaseObject):
         self.objects = [
             PureText(self, (100, 0), (600, 80), "爽 雷",
                      textfont=FONT_TITLE, window=self),
-            Button(self, (100, 100), (600, 80), _PureText("初级(10x10 m10)",
+            Button(self, (100, 100), (600, 80), _PureText("初级(9x9 m10)",
                    TEXTCOLOR_L, FONT_TEXT, (600, 100))(), self, self.start_game_L),
             Button(self, (100, 210), (600, 80), _PureText("中级(16x16 m40)",
                    TEXTCOLOR_M, FONT_TEXT, (600, 100))(), self, self.start_game_M),
@@ -1278,7 +974,7 @@ class MainMenu(BaseObject):
                                                           (177, 34, 76, 255), FONT_TEXT, (150, 60))(), self, quitgame),
             Button(self, (300, 430), (150, 60), _PureText("说明",
                                                           (163, 73, 164, 255), FONT_TEXT, (150, 60))(), self,
-                   Info_Notice("点击对应的等级进入游戏棋盘。\n整个雷场已经被计算机解了一遍，百分数表示这个地方有雷的概率。\n你可以像正常游戏那样进行操作，\n也可以按下任意键让电脑帮你操作（除非欢乐二选一）", "说明").mainloop)]
+                   Info_Notice("点击对应的等级进入游戏棋盘。\n每个位置有雷的概率已经解出并标注。\n你可以像正常游戏那样进行操作，\n也可以按下任意键让电脑帮你操作。\n", "说明").mainloop)]
 
         self.clock = pg.time.Clock()
         self._refresh = True
@@ -1286,7 +982,7 @@ class MainMenu(BaseObject):
     def start_game_L(self):
         if PROGRESS_DEBUG:
             print("GameL-1")
-        g = Game(self, 10, 10, 10)
+        g = Game(self, 9, 9, 10)
         if PROGRESS_DEBUG:
             print("GameL-2")
         self._refresh = True
