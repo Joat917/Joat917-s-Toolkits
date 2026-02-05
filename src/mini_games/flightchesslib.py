@@ -1,5 +1,6 @@
 import enum
 import numpy as np
+import os
 
 class Locations(enum.Enum):
     AIRWAY = 0
@@ -112,7 +113,7 @@ class Plane:
         else:
             raise ValueError("Invalid location")
         
-    def _get_all_stacked_planes(self):
+    def get_all_stacked_planes(self):
         "获取堆叠在自己上的所有飞机。第一个输出自己"
         current_plane = self
         yield self
@@ -126,7 +127,7 @@ class Plane:
     def move_to(self, new_location:tuple[Locations, int]):
         "把自己移动到新的位置"
         # print("Move From", self.location, "To", new_location)
-        for plane in self._get_all_stacked_planes():
+        for plane in self.get_all_stacked_planes():
             plane.location = new_location
 
     def fight(self):
@@ -136,8 +137,8 @@ class Plane:
             if not other_planes:
                 return
             if other_planes[0].color != self.color:
-                self_stacked_planes = list(self._get_all_stacked_planes())
-                other_stacked_planes = list(other_planes[0]._get_all_stacked_planes())
+                self_stacked_planes = list(self.get_all_stacked_planes())
+                other_stacked_planes = list(other_planes[0].get_all_stacked_planes())
 
                 other_stacked_planes.pop(0).crash(self)
                 while self_stacked_planes and other_stacked_planes:
@@ -145,8 +146,8 @@ class Plane:
                     other_stacked_planes.pop(0).crash(self)
             elif self.location[0]!=Locations.RUNWAY:
                 bottom_plane = other_planes[0]
-                self_stacked_planes = list(self._get_all_stacked_planes())
-                other_stacked_planes = list(bottom_plane._get_all_stacked_planes())
+                self_stacked_planes = list(self.get_all_stacked_planes())
+                other_stacked_planes = list(bottom_plane.get_all_stacked_planes())
                 if not set(self_stacked_planes)==set(other_stacked_planes):
                     # 连接两堆互不相连的飞机
                     assert not set(self_stacked_planes).intersection(other_stacked_planes)
@@ -163,7 +164,7 @@ class Plane:
             other_plane.statistics_dict['damage_counts'] += 1
             other_plane.statistics_dict['damage_distance'] += crash_distance
 
-        stacked_planes = list(self._get_all_stacked_planes())[1:]
+        stacked_planes = list(self.get_all_stacked_planes())[1:]
         if len(stacked_planes) > 1:
             stacked_planes[-1].stack = self.stack
         elif len(stacked_planes) == 1:
@@ -180,7 +181,7 @@ class Plane:
             self.move_to(pos)
         # 记录统计数据
         self.statistics_dict['movement_distance'] += steps
-        self.statistics_dict['stacked_movement_distance'] += (len(list(self._get_all_stacked_planes()))-1)*steps
+        self.statistics_dict['stacked_movement_distance'] += (len(list(self.get_all_stacked_planes()))-1)*steps
         if self.location[0] == Locations.FINAL and path[-1][1]//4!=5 and any((loc[0]==Locations.FINAL and loc[1]//4==5) for loc in path):
             overshoot_steps = 5-path[-1][1]//4
             self.statistics_dict['total_moveback_distance'] += overshoot_steps
@@ -209,7 +210,7 @@ class Plane:
                 _loop_flag = True
 
         if self.location[0] == Locations.FINAL and self.location[1]//4 == 5:
-            for plane in list(self._get_all_stacked_planes()):
+            for plane in list(self.get_all_stacked_planes()):
                 plane.arrival = True
                 plane.stack = None
                 plane.move_to(plane.apron)
@@ -234,7 +235,7 @@ class AnimatedPlane(Plane):
         if start_tick is None:
             start_tick = self._registered_tick
         end_tick = round(start_tick + self.animation_duration*self.fps)
-        for plane in self._get_all_stacked_planes():
+        for plane in self.get_all_stacked_planes():
             plane.animations.append((start_tick, end_tick, old_location, new_location))
             plane.location = new_location
         self._registered_tick = end_tick
@@ -250,6 +251,11 @@ class AnimatedPlane(Plane):
         "将棋盘位置转换为像素坐标"
         x, y = POINTS_COORD[location[0].value, location[1]]
         return x*self.board_size/780, y*self.board_size/780
+    
+    def crash(self, other_plane:Plane=None):
+        if other_plane is not None:
+            self._registered_tick = max(self._registered_tick, other_plane._registered_tick)
+        super().crash(other_plane)
     
     def tick(self):
         "获取当前动画帧的位置"
@@ -363,6 +369,78 @@ class Game:
 
         return
     
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    import cv2
+    import json
+    import tqdm
+    class VideoGame(Game):
+        "AI对战，然后将游戏相关信息保存为文件和视频"
+        def __init__(self, players:dict[Colors, PlayerBase], record_dir:str, seed=None, fps=30, animation_duration=0.2, step_gap=0.3):
+            super().__init__(players, seed, lambda*args,**kwargs:AnimatedPlane(*args,**kwargs,animation_duration=animation_duration,fps=fps), 4)
+            self.record_dir = record_dir
+            os.makedirs(self.record_dir, exist_ok=True)
+            self.fps = fps
+            self.animation_frames = round(animation_duration*fps)
+            self.step_gap_frames = round(step_gap*fps)
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.video_writer = cv2.VideoWriter(
+                os.path.join(self.record_dir, 'game_record.mp4'),
+                fourcc, fps, (780, 780)
+            )
+
+            self.IMG_ROOT = os.path.abspath('.')
+            while 'src' not in os.listdir('.'):
+                self.IMG_ROOT = os.path.dirname(self.IMG_ROOT)
+                if self.IMG_ROOT == os.path.dirname(self.IMG_ROOT):
+                    raise FileNotFoundError("Cannot find project root directory")
+            self.IMG_ROOT = os.path.join(self.IMG_ROOT, 'assets', 'flightchess')
+            self.FLIGHT_PICS = [Image.open(os.path.join(self.IMG_ROOT, f"icon_{clr}.png")) for clr in ['red', 'yellow', 'blue', 'green']]
+            self.FINAL_PICS = [im.copy().convert('LA').convert('RGBA') for im in self.FLIGHT_PICS]
+            self.BG_PIC = Image.open(os.path.join(self.IMG_ROOT, 'board.png'))
+            
+
+        def mainloop(self):
+            pbar = tqdm.tqdm(leave=False)
+            while not self.gameover():
+                self.step()
+                pbar.set_description(f"Round {self.dice.rounds} - Player {STRING_COLORS[self.dice.current_player.value]} rolled {self.dice.current_value}")
+                # 每一步动画
+                base_frame = self.BG_PIC.copy()
+                ImageDraw.Draw(base_frame).text(
+                    (470, 300), 
+                    str((self.dice.current_value if self.dice.current_value is not None else '-')), 
+                    self.dice.current_player.name.lower() if self.dice.current_player is not None else 'gray', 
+                    ImageFont.truetype('arial.ttf', 32)
+                )
+                while any(plane.animations for plane in self.planes):
+                    frame = base_frame.copy()
+                    
+                    for plane in self.planes:
+                        pos = plane.tick()
+                        plane_image = self.FINAL_PICS[plane.color.value] if plane.arrival and not plane.animations else self.FLIGHT_PICS[plane.color.value]
+                        frame.paste(plane_image, (round(pos[0]), round(pos[1])), plane_image)
+                    self.video_writer.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGBA2BGR))
+                    pbar.update()
+                # 步骤间隔
+                frame = base_frame
+                for plane in self.planes:
+                    pos = plane.tick()
+                    plane_image = self.FINAL_PICS[plane.color.value] if plane.arrival and not plane.animations else self.FLIGHT_PICS[plane.color.value]
+                    frame.paste(plane_image, (round(pos[0]), round(pos[1])), plane_image)
+                for _ in range(self.step_gap_frames):
+                    self.video_writer.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGBA2BGR))
+                pbar.update()
+            self.video_writer.release()
+            pbar.close()
+            with open(os.path.join(self.record_dir, 'statistics.json'), 'w') as f:
+                json.dump({color.name.lower():value for color,value in self.statistics.items()}, f, indent=4)
+except ImportError as exc:
+    import traceback
+    traceback.print_exc()
+    pass
+
+
 class PlayerRandom(PlayerBase):
     def __init__(self, color, game):
         self.rng = np.random.Generator(np.random.PCG64())
@@ -396,10 +474,6 @@ class PlayerA1(PlayerBase):
             return planes_filtered[0]
         # 优先选择靠前的飞机
         planes_filtered.sort(key=lambda p:p.get_progress(), reverse=True)
-        # 如果存在即将到达终点的飞机，选择该飞机
-        for p in planes_filtered:
-            if p.location[0] == Locations.FINAL and p.location[1]//4 + dice_value == 5:
-                return p
         # 如果存在可以进入终点的飞机，选择该飞机
         for p in planes_filtered:
             if p.location[0] == Locations.AIRWAY and paths[p][-1][0] == Locations.FINAL:
@@ -412,6 +486,19 @@ class PlayerA1(PlayerBase):
         for p in planes_filtered:
             if p.location[0] == Locations.APRON:
                 return p
+        # 优先叠加飞机
+        for p in planes_filtered:
+            for other_plane in self.game.planes:
+                if other_plane is not p and other_plane.color == self.color and other_plane.location == paths[p][-1]:
+                    return p
+        # 如果存在即将到达终点的飞机，选择该飞机
+        for p in planes_filtered:
+            if p.location[0] == Locations.FINAL and p.location[1]//4 + dice_value == 5:
+                return p
+        # 如果飞机在终点附近，但是不能恰好到达终点，不要选它
+        planes_filtered_2 = [p for p in planes_filtered if p.location[0]!=Locations.FINAL]
+        if planes_filtered_2:
+            planes_filtered = planes_filtered_2
         return planes_filtered[0]
 
 
@@ -427,28 +514,15 @@ import base64,lzma
 POINTS_COORD = dict(eval(lzma.decompress(base64.a85decode(POINTS_COORD_DATA_COMPRESSED)).decode())) # 假设棋盘大小为780x780，那么各个点位对应的坐标在什么地方
 
 if __name__ == "__main__":
-    game = Game(
+    game = VideoGame(
         players = {
             Colors.RED: PlayerA1(Colors.RED, None),
             Colors.YELLOW: PlayerA1(Colors.YELLOW, None),
             Colors.BLUE: PlayerA1(Colors.BLUE, None),
             Colors.GREEN: PlayerA1(Colors.GREEN, None),
         },
-        seed=None,
-        plane_factory=Plane,
-        plane_count=4
+        record_dir = './flightchess_record',
+        seed = None
     )
-    for player in game.players.values():
-        player.game = game
-
-    import tqdm
-    pbar = tqdm.tqdm(leave=False)
-    while not game.gameover():
-        game.step()
-        pbar.update(1)
-    pbar.close()
-    
-    for color in Colors:
-        print(f"{STRING_COLORS[color.value]} player statistics:")
-        for k, v in game.statistics[color].items():
-            print(f"  {k}: {v}")
+    game.mainloop()
+    print(game.statistics)

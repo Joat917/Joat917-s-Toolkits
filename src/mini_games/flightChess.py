@@ -112,7 +112,7 @@ class Flight(AnimatedPlane):
         return 
 
     def show(self):
-        if self.arrival:
+        if self.arrival and not self.animations:
             self.picture=Picture(FINAL_PICS[self.color.value], scaling, self.picture.position0)
         self.picture.show()
 
