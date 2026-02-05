@@ -1,5 +1,5 @@
 from basic_settings import *
-from main_widgets import WidgetBox, PlainText, SwitchButton, MainWindow
+from main_widgets import WidgetBox, PlainText, SwitchButton, MainWindow, CustomMenu
 
 # digital tube manager
 
@@ -257,7 +257,7 @@ class StopWatchMainWindow(QWidget):
     def contextMenuEvent(self, event):
         if self._action is None:
             return
-        menu = QMenu(self)
+        menu = CustomMenu(self)
         menu.addAction(self._action)
         menu.exec_(event.globalPos())
 

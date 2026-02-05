@@ -399,8 +399,9 @@ class TrayIconWidget:
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
 
-        self.add_action(SETTINGS.window_title, lambda:FadingPopup(SETTINGS.window_welcome).fadeIn())
-        self.add_action(f"Hide/Show({SETTINGS.window_toggleshowkey})", lambda:self.manager.refreshHiddenState(not self.manager.hidden))
+        self.add_action(SETTINGS.window_title, lambda:os.startfile(SETTINGS.project_dir))
+        self.add_action("Where's My Data?", lambda:os.startfile(SETTINGS.working_dir))
+        self.add_action(f"Show/Hide({SETTINGS.window_toggleshowkey})", lambda:self.manager.refreshHiddenState(not self.manager.hidden))
         self.add_action(f"Exit({SETTINGS.window_exitkey})", self.exit)
         self.add_action("Set Background", self.manager.bgwidget.reset_background_image)
         self.add_action("Settings", SETTINGS.open_popup_file)
