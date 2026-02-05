@@ -23,8 +23,13 @@ def get_vinitial(x_target, y_target, x_start, y_start=SCREEN_HEIGHT, time=randin
 
 
 class Media:
-    ROOT_PATH = '../../assets/numguess/'
     def __init__(self) -> None:
+        _ROOT = os.path.abspath(os.path.dirname(__file__))
+        while 'src' not in os.listdir(_ROOT):
+            _ROOT = os.path.dirname(_ROOT)
+            if os.path.dirname(_ROOT) == _ROOT:
+                raise FileNotFoundError("Cannot find 'src' directory.")
+        self.ROOT_PATH = os.path.abspath(os.path.join(_ROOT, 'assets', 'numguess'))
         try:
             self.backgrounds = pg.transform.scale(pg.image.load(os.path.join(self.ROOT_PATH, "Starnight2.png")), (SCREEN_WIDTH, SCREEN_HEIGHT))
         except Exception:

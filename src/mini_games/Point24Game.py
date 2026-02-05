@@ -13,7 +13,12 @@ TPS_over_FPS = TPS // FPS
 FIREWORK_ACCELERATION = 1
 FIREWORK_GAP = 5 * TPS_over_FPS
 
-IMAGE_ROOT = os.path.abspath('../../assets/numguess/')
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+while 'src' not in os.listdir(_ROOT):
+    _ROOT = os.path.dirname(_ROOT)
+    if os.path.dirname(_ROOT) == _ROOT:
+        raise FileNotFoundError("Cannot find 'src' directory.")
+IMAGE_ROOT = os.path.abspath(os.path.join(_ROOT, 'assets', 'numguess'))
 WORKING_DIR = os.path.join(os.environ['APPDATA'], 'PyScriptX', 'MyToolkits') # from settings.py
 
 try:

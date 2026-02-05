@@ -12,7 +12,12 @@ clock = pg.time.Clock()
 
 FPS = 30
 
-IMG_ROOT = os.path.abspath('../../assets/flightchess/')
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+while 'src' not in os.listdir(_ROOT):
+    _ROOT = os.path.dirname(_ROOT)
+    if os.path.dirname(_ROOT) == _ROOT:
+        raise FileNotFoundError("Cannot find 'src' directory.")
+IMG_ROOT = os.path.abspath(os.path.join(_ROOT, 'assets', 'flightchess'))
 FLIGHT_PICS = [Im.open(os.path.join(IMG_ROOT, f"icon_{clr}.png")) for clr in ['red', 'yellow', 'blue', 'green']]
 FINAL_PICS = [im.copy().convert('LA').convert('RGBA') for im in FLIGHT_PICS]
 pg.display.set_icon(pg.image.load(os.path.join(IMG_ROOT, 'icon_red.png')))

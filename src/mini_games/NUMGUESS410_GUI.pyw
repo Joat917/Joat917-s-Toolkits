@@ -38,8 +38,14 @@ def numcompare(digits1: list[int], digits2: list[int]) -> tuple[int]:
 
 
 class Media:
-    ROOT_PATH = '../../assets/numguess/'
     def __init__(self) -> None:
+        _ROOT = os.path.abspath(os.path.dirname(__file__))
+        while 'src' not in os.listdir(_ROOT):
+            _ROOT = os.path.dirname(_ROOT)
+            if os.path.dirname(_ROOT) == _ROOT:
+                raise FileNotFoundError("Cannot find 'src' directory.")
+            
+        self.ROOT_PATH = os.path.abspath(os.path.join(_ROOT, 'assets', 'numguess'))
         # BG
         self.backgrounds = [pg.transform.scale(pg.image.load(os.path.join(self.ROOT_PATH, "Starnight.png")), (SCREEN_WIDTH, SCREEN_HEIGHT)),
                             pg.transform.scale(pg.image.load(os.path.join(self.ROOT_PATH, "Skyclean.png")), (SCREEN_WIDTH, SCREEN_HEIGHT))]

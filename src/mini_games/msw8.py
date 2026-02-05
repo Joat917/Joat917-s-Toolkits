@@ -54,7 +54,12 @@ def init():
     global root
     pg.init()
     pg.display.set_caption("Minesweeper 8")
-    pg.display.set_icon(pg.image.load("../../assets/icon.png"))
+    _ROOT = os.path.abspath(os.path.dirname(__file__))
+    while 'src' not in os.listdir(_ROOT):
+        _ROOT = os.path.dirname(_ROOT)
+        if os.path.dirname(_ROOT) == _ROOT:
+            raise FileNotFoundError("Cannot find 'src' directory.")
+    pg.display.set_icon(pg.image.load(os.path.join(_ROOT, 'assets', 'icon.png')))
     root = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     return root
 

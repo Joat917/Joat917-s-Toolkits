@@ -62,6 +62,12 @@ class MiniGamesWidget(WidgetBox):
             width=160,
             bg_color=QColor(250, 200, 50)
         )
+        self.thirdmaze_button = PushButton(
+            onclick=lambda: self.master.droprunner.run(os.path.join(SETTINGS.src_dir, 'ThirdMaze', 'MainMenu.py'), run_dir=SETTINGS.src_dir, without_console=True),
+            text="ThirdMaze",
+            width=180,
+            bg_color=QColor(100, 250, 150)
+        )
 
         self.line1 = QHBoxLayout()
         self.line1.addWidget(self.minesweeper_button)
@@ -79,7 +85,11 @@ class MiniGamesWidget(WidgetBox):
         self.line4.addWidget(self.rushhour_button)
         self.line4.addWidget(self.fireshow_button)
 
+        self.line5 = QHBoxLayout()
+        self.line5.addWidget(self.thirdmaze_button)
+
         self.layout.addLayout(self.line1)
         self.layout.addLayout(self.line2)
         self.layout.addLayout(self.line3)
         self.layout.addLayout(self.line4)
+        self.layout.addLayout(self.line5)

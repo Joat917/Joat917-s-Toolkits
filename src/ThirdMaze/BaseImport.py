@@ -64,10 +64,15 @@ class GameExit(RuntimeError):
 
 
 class _MediaPath:
-    IMAGE_ROOT = os.path.abspath('../../assets/thirdmaze/img/')
-    DLL_ROOT = os.path.abspath('../../assets/thirdmaze/dll/')
-    FIREWORK_ROOT = os.path.abspath('../../assets/numguess/')
     def __init__(self):
+        _ROOT = os.path.abspath(os.path.dirname(__file__))
+        while 'src' not in os.listdir(_ROOT):
+            _ROOT = os.path.dirname(_ROOT)
+            if os.path.dirname(_ROOT) == _ROOT:
+                raise FileNotFoundError("Cannot find 'src' directory.")
+        self.IMAGE_ROOT = os.path.abspath(os.path.join(_ROOT, 'assets', 'thirdmaze', 'img'))
+        self.DLL_ROOT = os.path.abspath(os.path.join(_ROOT, 'assets', 'thirdmaze', 'dll'))
+        self.FIREWORK_ROOT = os.path.abspath(os.path.join(_ROOT, 'assets', 'numguess'))
         sys.path.append(self.DLL_ROOT)
         pass
 
