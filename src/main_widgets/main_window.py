@@ -8,6 +8,7 @@ class MainWindow(QWidget):
     WIDTH = SETTINGS.window_width
     HEIGHT = SETTINGS.window_height
     PADDING = SETTINGS.window_padding
+    SHADOW_MARGIN = SETTINGS.shadow_margin
     K=SETTINGS.window_animation_K # 回弹系数
     R=SETTINGS.window_animation_R # 回弹半径
     TOTAL_ANIMATION_FRAMES = SETTINGS.window_animation_frames
@@ -18,9 +19,9 @@ class MainWindow(QWidget):
 
         # 停靠在屏幕右上角
         screen_geometry = QApplication.primaryScreen().geometry()
-        self.position_1 = QPoint(screen_geometry.width()-self.WIDTH-self.PADDING, self.PADDING)
-        self.position_2 = QPoint(screen_geometry.width()-self.PADDING, self.PADDING)
-        self.setGeometry(self.position_1.x(), self.position_1.y(), self.WIDTH, self.HEIGHT)
+        self.position_1 = QPoint(screen_geometry.width()-self.WIDTH-self.SHADOW_MARGIN, self.PADDING-self.SHADOW_MARGIN)
+        self.position_2 = QPoint(screen_geometry.width()-self.PADDING-self.SHADOW_MARGIN, self.PADDING-self.SHADOW_MARGIN)
+        self.setGeometry(self.position_1.x(), self.position_1.y(), self.WIDTH+2*self.SHADOW_MARGIN, self.HEIGHT+2*self.SHADOW_MARGIN)
 
         self.setAcceptDrops(True)
         self.setWindowTitle(SETTINGS.window_title)
@@ -28,21 +29,38 @@ class MainWindow(QWidget):
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
-        self.bgwidget=BackgroundWidget(self)
+        # MainWindow -> shadow(_shadowed_window_layout)
+        self.shadow = QGraphicsDropShadowEffect(self)
+        self.shadow.setBlurRadius(20)
+        self.shadow.setColor(QColor(0, 0, 0, 160))
+        self.shadow.setOffset(0, 0)
+        self.setGraphicsEffect(self.shadow)
+
+        self._shadowed_window_layout = QVBoxLayout(self)
+        self.setLayout(self._shadowed_window_layout)
+        self._shadowed_window_layout.setContentsMargins(self.SHADOW_MARGIN, self.SHADOW_MARGIN, self.SHADOW_MARGIN, self.SHADOW_MARGIN)
+
+        # shadow(_shadowed_window_layout) -> shadow_container(shadow_container_layout)
+        self.shadow_container = QWidget(self)
+        self._shadowed_window_layout.addWidget(self.shadow_container)
+        self.shadow_container.setStyleSheet("background-color: transparent;")
+        self.shadow_container.setGeometry(0, 0, self.WIDTH, self.HEIGHT)
+        self.shadow_container_layout = QVBoxLayout(self.shadow_container)
+        self.shadow_container.installEventFilter(self)
+
+        self.bgwidget=BackgroundWidget(self.shadow_container, width=self.WIDTH, height=self.HEIGHT)
         self.trayWidget=TrayIconWidget(self)
 
-        # self.globalKeyboardListener = None
-        self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], parent=self, auto_start=True)
-        self.globalKeyboardListener.press_callbacks.append(self._globalHotkeyHandler)
-        self.hotkey_callbacks = {} # name: callback
-
-        scroll = QScrollArea(self)
+        # shadow_container(shadow_container_layout) -> scroll
+        scroll = QScrollArea(self.shadow_container)
+        self.shadow_container_layout.addWidget(scroll)
         scroll.setWidgetResizable(True)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setGeometry(0, 0, self.WIDTH, self.HEIGHT)
         scroll.setStyleSheet("border: none;")
-        content_widget = QWidget(scroll)
-        scroll.setWidget(content_widget)
-        scroll.viewport().installEventFilter(self) # 捕获横向滚轮（触摸板/鼠标）事件，交给 MainWindow 处理
         scroll.verticalScrollBar().setContextMenuPolicy(Qt.NoContextMenu)
+        
         # 圆形滚动条样式
         scroll.verticalScrollBar().setStyleSheet("""
             QScrollBar:vertical {
@@ -52,7 +70,7 @@ class MainWindow(QWidget):
                 border-radius: %dpx;
             }
             QScrollBar::handle:vertical {
-                background: rgba(255, 255, 255, 150);
+                background: rgba(255, 255, 255, 100);
                 min-height: %dpx;
                 border-radius: %dpx;
             }
@@ -68,11 +86,17 @@ class MainWindow(QWidget):
             SETTINGS.window_scrollbar_min_height,
             SETTINGS.window_scrollbar_width // 2
         ))
+        
+        # scroll -> content_widget(content_layout)
+        self.content_widget = QWidget(scroll)
+        self.shadow_container_layout.addWidget(self.content_widget)
+        scroll.setWidget(self.content_widget)
+        self.content_layout = QVBoxLayout(self.content_widget)
 
-        self.layout = QVBoxLayout(content_widget)
-
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.addWidget(scroll)
+        # self.globalKeyboardListener = None
+        self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], parent=self, auto_start=True)
+        self.globalKeyboardListener.press_callbacks.append(self._globalHotkeyHandler)
+        self.hotkey_callbacks = {} # name: callback
 
         self.widgets = []
         self.messages = queue.Queue()
@@ -90,7 +114,7 @@ class MainWindow(QWidget):
         self._keyboard_moving_countleft = 0 # 键盘隐藏动画剩余帧数
 
     def addWidget(self, widget):
-        self.layout.addWidget(widget)
+        self.content_layout.addWidget(widget)
         widget.show()
         self.widgets.append(widget)
         return
@@ -254,7 +278,7 @@ class MainWindow(QWidget):
         self.raise_()
 
     def eventFilter(self, obj, event):
-        # 监听安装到 scroll.viewport() 的滚轮事件，检测横向滚动
+        # 监听安装到 主窗口 的滚轮事件，检测横向滚动
         try:
             if event.type() == QEvent.Wheel:
                 delta = event.angleDelta()
@@ -264,7 +288,7 @@ class MainWindow(QWidget):
                 if abs(dx) > abs(dy):
                     if not self.hidden and dx > 0:
                         self.refreshHiddenState(True)
-                    elif self.hidden and dx < 0:
+                    if self.hidden and dx < 0:
                         self.refreshHiddenState(False)
         except Exception:
             pass
@@ -312,10 +336,10 @@ class MainWindow(QWidget):
 
 
 class BackgroundWidget(QLabel):
-    def __init__(self, parent:QWidget):
+    def __init__(self, parent:QWidget, width:int, height:int):
         super().__init__(parent)
         self.main=parent
-        self.setGeometry(0, 0, self.main.width(), self.main.height())
+        self.setGeometry(0, 0, width, height)
         self.container=QLabel(self)
         self.container.setStyleSheet(f"background-color: transparent; font-size: {SETTINGS.font_size}pt; margin: {SETTINGS.window_padding}px;")
         self.setStyleSheet(f"background-color: {SETTINGS.window_default_bgcolor}; border-radius: {SETTINGS.window_border_radius}px; ")

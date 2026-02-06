@@ -56,6 +56,7 @@ class Settings:
         self.window_width = 600
         self.window_height = 1000
         self.window_padding = 16
+        self.shadow_margin = 16
         self.window_title = "Joat917's Toolkit"
         self.window_welcome = "Hello there!"
         self.window_border_radius = 50

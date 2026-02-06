@@ -7,7 +7,7 @@ class CustomMenu(QMenu):
 
         # 透明背景
         self.setStyleSheet("background-color: transparent;")
-        self.setWindowFlags(self.windowFlags()|Qt.FramelessWindowHint)
+        self.setWindowFlags(self.windowFlags()|Qt.FramelessWindowHint|Qt.NoDropShadowWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
         # 设置按钮样式
