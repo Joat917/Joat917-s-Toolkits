@@ -61,25 +61,25 @@ class ClipboardWidget(WidgetBox):
             parent=self
         )
 
-        self.addWidget(self.advanced_reader_button)
-        self.addWidget(self.clear_content_button)
-        self.addWidget(self.clear_format_button)
-        self.addWidget(self.save_image_button)
-        self.addWidget(self.reveal_in_explorer_button)
-        self.addWidget(self.current_clipboard_state)
+        self.add(self.advanced_reader_button)
+        self.add(self.clear_content_button)
+        self.add(self.clear_format_button)
+        self.add(self.save_image_button)
+        self.add(self.reveal_in_explorer_button)
+        self.add(self.current_clipboard_state)
 
         self.save_image_button.hide()
         self.reveal_in_explorer_button.hide()
         
-        self.addWidget(PlainText(
+        self.add(PlainText(
             text="Win+V : Clipboard History", 
             parent=self
         ))
-        self.addWidget(PlainText(
+        self.add(PlainText(
             text="Win+Shift+V : Advanced Paster", 
             parent=self
         ))
-        self.addWidget(PlainText(
+        self.add(PlainText(
             text="Win+Ctrl+Alt+V : Paste as Plain Text", 
             parent=self
         ))

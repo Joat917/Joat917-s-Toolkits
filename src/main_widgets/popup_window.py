@@ -23,10 +23,10 @@ class InformationPopup(PopupWindow):
         self.ok_button.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
 
         # 一行文字，最后一行居中显示按钮
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.label)
-        self.layout.addWidget(self.ok_button, alignment=Qt.AlignCenter)
-        self.setLayout(self.layout)
+        self.main_layout = QVBoxLayout()
+        self.main_layout.addWidget(self.label)
+        self.main_layout.addWidget(self.ok_button, alignment=Qt.AlignCenter)
+        self.setLayout(self.main_layout)
 
 class ConfirmationPopup(PopupWindow):
     def __init__(self, message, title="Confirmation", callback=lambda response: None):
@@ -47,14 +47,14 @@ class ConfirmationPopup(PopupWindow):
         self.yes_button.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
         self.no_button.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
 
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.label)
+        self.main_layout = QVBoxLayout()
+        self.main_layout.addWidget(self.label)
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.yes_button)
         button_layout.addWidget(self.no_button)
-        self.layout.addLayout(button_layout)
+        self.main_layout.addLayout(button_layout)
 
-        self.setLayout(self.layout)
+        self.setLayout(self.main_layout)
 
 
     def yes_clicked(self):

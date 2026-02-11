@@ -23,8 +23,8 @@ class DropRunner(WidgetBox):
         self.debug_mode_sublayout.addWidget(self.switch)
         self.debug_mode_sublayout.addWidget(self.switchText)
 
-        self.layout.addLayout(self.debug_mode_sublayout)
-        self.layout.addWidget(self.label)
+        self.add(self.debug_mode_sublayout)
+        self.add(self.label)
 
         self.python_path = os.path.join(self.PYTHON_DIR, 'python.exe')
         self.pythonw_path = os.path.join(self.PYTHON_DIR, 'pythonw.exe')
@@ -35,7 +35,7 @@ class DropRunner(WidgetBox):
         self.last_dropped_files = []
         self.last_dropped_sublayout = QVBoxLayout()
         self._last_dropped_widgets = []
-        self.layout.addLayout(self.last_dropped_sublayout)
+        self.add(self.last_dropped_sublayout)
 
     def setDebugMode(self, debug: bool):
         self.debug_mode = debug

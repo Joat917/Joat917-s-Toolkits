@@ -291,10 +291,7 @@ class StopWatchWidgetBox(WidgetBox):
             text="Disabled",
             parent=self
         )
-        self.sublayout = QHBoxLayout()
-        self.sublayout.addWidget(self.toggle_button)
-        self.sublayout.addWidget(self.status_label)
-        self.layout.addLayout(self.sublayout)
+        self.addLine(self.toggle_button, self.status_label)
 
     def enable_stopwatch(self):
         if self.stopwatch_mainwindow is not None:

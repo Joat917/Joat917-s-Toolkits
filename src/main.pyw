@@ -13,16 +13,18 @@ if __name__ == "__main__":
         window.droprunner = drop_runner
         clipboard_widget = ClipboardWidget(parent=window)
         window.clipboard_widget = clipboard_widget
-        window.addWidget(InlineCalculatorWidget(parent=window))
-        window.addWidget(clipboard_widget)
-        window.addWidget(drop_runner)
-        window.addWidget(KeyDisplayerWidget(master=window))
-        window.addWidget(StopWatchWidgetBox(master=window))
-        window.addWidget(ClickerWidget(window))
-        window.addWidget(ChaoticPendulumWidget(mainwindow=window))
-        window.addWidget(OtherToolsWidget(parent=window))
-        window.addWidget(MiniGamesWidget(parent=window))
-        window.addWidget(HotkeyGuideWidget(parent=window))
+        window.add(
+            InlineCalculatorWidget(parent=window), 
+            clipboard_widget,
+            drop_runner,
+            KeyDisplayerWidget(master=window),
+            StopWatchWidgetBox(master=window),
+            ClickerWidget(window),
+            ChaoticPendulumWidget(mainwindow=window),
+            OtherToolsWidget(parent=window),
+            MiniGamesWidget(parent=window),
+            HotkeyGuideWidget(parent=window)
+        )
         window.show()
         try:
             ret = app.exec_()

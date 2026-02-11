@@ -17,10 +17,7 @@ class ClickerWidget(WidgetBox):
             text="Clicker is Disabled", 
             parent=self
         )
-        self.enabling_sublayout = QHBoxLayout()
-        self.enabling_sublayout.addWidget(self.switch_button)
-        self.enabling_sublayout.addWidget(self.switch_button_label)
-        self.layout.addLayout(self.enabling_sublayout)
+        self.addLine(self.switch_button, self.switch_button_label)
 
         self._mouse_button = pynput.mouse.Button.left
         self.mouse_button_switcher = SwitchButton(
@@ -31,10 +28,7 @@ class ClickerWidget(WidgetBox):
             text="Mouse Button: Left", 
             parent=self
         )
-        self.mouse_button_sublayout = QHBoxLayout()
-        self.mouse_button_sublayout.addWidget(self.mouse_button_switcher)
-        self.mouse_button_sublayout.addWidget(self.mouse_button_switcher_label)
-        self.layout.addLayout(self.mouse_button_sublayout)
+        self.addLine(self.mouse_button_switcher, self.mouse_button_switcher_label)
 
         self.interval_label = QLabel("Interval (ms):")
         self.interval_label.setFont(QFont(SETTINGS.font_name))
@@ -44,17 +38,13 @@ class ClickerWidget(WidgetBox):
         self.interval_input.setValue(SETTINGS.clicker_default_interval)
         self.interval_input.setFont(QFont(SETTINGS.font_name))
         self.interval_input.setStyleSheet(f"color:{SETTINGS.text_color}")
-
-        self.interval_setting_sublayout = QHBoxLayout()
-        self.interval_setting_sublayout.addWidget(self.interval_label)
-        self.interval_setting_sublayout.addWidget(self.interval_input)
-        self.layout.addLayout(self.interval_setting_sublayout)
+        self.addLine(self.interval_label, self.interval_input)
 
         self.hotkey_guideline = PlainText(
             text=f"Hold {SETTINGS.clicker_hotkey} to begin clicking", 
             parent=self
         )
-        self.layout.addWidget(self.hotkey_guideline)
+        self.add(self.hotkey_guideline)
 
         self.enabled = False
         self.clicking = False

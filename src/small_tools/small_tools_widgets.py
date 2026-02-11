@@ -38,20 +38,20 @@ class OtherToolsWidget(WidgetBox):
         )
         self.word_counter_button = PushButton(
             onclick=self.run_word_counter, 
-            text="Word Counter", 
+            text="Word Count", 
             width=220, 
             bg_color=QColor(200, 200, 100)
         )
         self.hex_quickview_button = PushButton(
             onclick=self.run_hex_quickview, 
-            text="Raw Hex Previewer", 
-            width=270, 
+            text="RawHex", 
+            width=150, 
             bg_color=QColor(100, 200, 200)
         )
         self.qr_scanner_button = PushButton(
             onclick=self.run_qr_scanner,
-            text="QR Code Scanner",
-            width=250,
+            text="QR Scan",
+            width=150,
             bg_color=QColor(100, 200, 150)
         )
         self.scdach_calendar_button = PushButton(
@@ -62,8 +62,8 @@ class OtherToolsWidget(WidgetBox):
         )
         self.schedule_achievements_button = PushButton(
             onclick=self.run_schedule_achievements, 
-            text="SchAchievements", 
-            width=260, 
+            text="SchAchv", 
+            width=160, 
             bg_color=QColor(200, 100, 200)
         )
         self.bpm_checker_button = PushButton(
@@ -80,28 +80,24 @@ class OtherToolsWidget(WidgetBox):
         )
         self.mojibake_button = PushButton(
             onclick=self.run_mojibake, 
-            text = "Text Corrupter", 
-            width = 220, 
+            text = "Corrupter", 
+            width = 150, 
             bg_color= QColor(200, 150, 100)
         )
+        self.minifier_button = PushButton(
+            onclick=self.run_minifier, 
+            text="Minify", 
+            width=130, 
+            bg_color=QColor(200, 150, 150)
+        )
 
-        self.line0 = QHBoxLayout()
-        self.line0.addWidget(self.word_counter_button)
-        self.line0.addWidget(self.bpm_checker_button)
-        self.layout.addLayout(self.line0)
-
-        self.addWidget(self.hex_quickview_button)
-        self.addWidget(self.qr_scanner_button)
-
-        self.line3 = QHBoxLayout()
-        self.line3.addWidget(self.schedule_achievements_button)
-        self.line3.addWidget(self.scdach_calendar_button)
-        self.layout.addLayout(self.line3)
-        
-        self.line4 = QHBoxLayout()
-        self.line4.addWidget(self.quinifier_button)
-        self.line4.addWidget(self.mojibake_button)
-        self.layout.addLayout(self.line4)
+        (
+            self
+            .addLine(self.word_counter_button, self.bpm_checker_button)
+            .addLine(self.hex_quickview_button, self.qr_scanner_button)
+            .addLine(self.schedule_achievements_button, self.scdach_calendar_button)
+            .addLine(self.quinifier_button, self.minifier_button, self.mojibake_button)
+        )
 
         self.tempfile = os.path.join(SETTINGS.working_dir, 'other_tools_temp.txt')
         self.tempimagefile = os.path.join(SETTINGS.working_dir, 'other_tools_temp_image.png')
@@ -150,6 +146,12 @@ class OtherToolsWidget(WidgetBox):
     
     def run_mojibake(self):
         return run_tool(self.master, 'gushen_coder.py')
+    
+    def run_minifier(self):
+        fp = get_clipboard_file_paths()
+        if fp and (fp.endswith('.py') or fp.endswith('.pyw')):
+            return run_tool(self.master, 'custompyminify.py', '-i', fp[0], '-o', os.path.splitext(fp[0])[0] + '_minified.'+os.path.splitext(fp[0])[1])
+        self.master.messages.put_nowait("请将要压缩的Python文件路径复制到剪贴板后再点击此按钮。")
 
     def close(self):
         if os.path.exists(self.tempfile):

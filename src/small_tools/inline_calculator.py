@@ -42,6 +42,8 @@ class InlineCalculator(code.InteractiveConsole):
             'import json', 
             'import base64', 
             'import hashlib',
+            'import prettytable',
+            'from prettytable import PrettyTable',
             'os.system("title Inline Calculator") and None or None' if os.name == 'nt' else '',
             f'os.chdir({os.path.abspath(os.path.expanduser("~"))!r})'
         ]:

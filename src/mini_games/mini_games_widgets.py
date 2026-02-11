@@ -80,33 +80,19 @@ class MiniGamesWidget(WidgetBox):
             width=160,
             bg_color=QColor(100, 200, 250)
         )
+        self.klotski_button = PushButton(
+            onclick=lambda: run_game(self.master, 'puzzle15game.py'),
+            text="Digital Klotski",
+            width=210,
+            bg_color=QColor(200, 250, 100)
+        )
 
-        self.line1 = QHBoxLayout()
-        self.line1.addWidget(self.minesweeper_button)
-        self.line1.addWidget(self.flightchess_button)
-
-        self.line2 = QHBoxLayout()
-        self.line2.addWidget(self.point24game_button)
-        self.line2.addWidget(self.point24solver_button)
-
-        self.line3 = QHBoxLayout()
-        self.line3.addWidget(self.numguess_button)
-        self.line3.addWidget(self.numguess_solver_button)
-
-        self.line4 = QHBoxLayout()
-        self.line4.addWidget(self.rushhour_button)
-        self.line4.addWidget(self.fireshow_button)
-
-        self.line5 = QHBoxLayout()
-        self.line5.addWidget(self.fstimer_button)
-        self.line5.addWidget(self.fsviewer_button)
-
-        self.line6 = QHBoxLayout()
-        self.line6.addWidget(self.thirdmaze_button)
-
-        self.layout.addLayout(self.line1)
-        self.layout.addLayout(self.line2)
-        self.layout.addLayout(self.line3)
-        self.layout.addLayout(self.line4)
-        self.layout.addLayout(self.line5)
-        self.layout.addLayout(self.line6)
+        (
+            self
+            .addLine(self.minesweeper_button, self.flightchess_button)
+            .addLine(self.point24game_button, self.point24solver_button)
+            .addLine(self.numguess_button, self.numguess_solver_button)
+            .addLine(self.rushhour_button, self.fireshow_button)
+            .addLine(self.fstimer_button, self.fsviewer_button)
+            .addLine(self.thirdmaze_button, self.klotski_button)
+        )

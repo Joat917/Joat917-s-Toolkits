@@ -263,10 +263,7 @@ class KeyDisplayerWidget(WidgetBox):
             text="Disabled",
             parent=self
         )
-        self.sublayout = QHBoxLayout()
-        self.sublayout.addWidget(self.toggle_button)
-        self.sublayout.addWidget(self.status_label)
-        self.layout.addLayout(self.sublayout)
+        self.addLine(self.toggle_button, self.status_label)
 
     def enable_keydisplayer(self):
         if self.keydisplayer_manager is not None:
