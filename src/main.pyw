@@ -3,6 +3,7 @@ from main_widgets import CheckStarted, MainWindow, WidgetBox, PlainText, SwitchB
 from common_utilities import StopWatchWidgetBox, DropRunner, KeyDisplayerWidget, ClickerWidget, ClipboardWidget, ChaoticPendulumWidget
 from small_tools.small_tools_widgets import InlineCalculatorWidget, OtherToolsWidget, HotkeyGuideWidget
 from mini_games.mini_games_widgets import MiniGamesWidget
+from musical_lite.musical_widgets import MusicalLiteWidget
 
 
 if __name__ == "__main__":
@@ -22,6 +23,7 @@ if __name__ == "__main__":
             ClickerWidget(window),
             ChaoticPendulumWidget(mainwindow=window),
             OtherToolsWidget(parent=window),
+            MusicalLiteWidget(parent=window),
             MiniGamesWidget(parent=window),
             HotkeyGuideWidget(parent=window)
         )

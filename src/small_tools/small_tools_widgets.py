@@ -38,8 +38,8 @@ class OtherToolsWidget(WidgetBox):
         )
         self.word_counter_button = PushButton(
             onclick=self.run_word_counter, 
-            text="Word Count", 
-            width=220, 
+            text="WordCount", 
+            width=190, 
             bg_color=QColor(200, 200, 100)
         )
         self.hex_quickview_button = PushButton(
@@ -50,8 +50,8 @@ class OtherToolsWidget(WidgetBox):
         )
         self.qr_scanner_button = PushButton(
             onclick=self.run_qr_scanner,
-            text="QR Scan",
-            width=150,
+            text="QRScan",
+            width=140,
             bg_color=QColor(100, 200, 150)
         )
         self.scdach_calendar_button = PushButton(
@@ -65,12 +65,6 @@ class OtherToolsWidget(WidgetBox):
             text="SchAchv", 
             width=160, 
             bg_color=QColor(200, 100, 200)
-        )
-        self.bpm_checker_button = PushButton(
-            onclick=self.run_bpm_checker, 
-            text="BPM Counter", 
-            width = 210, 
-            bg_color=QColor(150, 100, 200)
         )
         self.quinifier_button = PushButton(
             onclick=self.run_quinifier, 
@@ -90,11 +84,17 @@ class OtherToolsWidget(WidgetBox):
             width=130, 
             bg_color=QColor(200, 150, 150)
         )
+        self.script_generator_button = PushButton(
+            onclick=lambda: run_tool(self.master, 'script_generator.py'), 
+            text="ScriptGen", 
+            width=180, 
+            bg_color=QColor(100, 150, 200)
+        )
 
         (
             self
-            .addLine(self.word_counter_button, self.bpm_checker_button)
-            .addLine(self.hex_quickview_button, self.qr_scanner_button)
+            .addLine(self.word_counter_button, self.hex_quickview_button)
+            .addLine(self.qr_scanner_button, self.script_generator_button)
             .addLine(self.schedule_achievements_button, self.scdach_calendar_button)
             .addLine(self.quinifier_button, self.minifier_button, self.mojibake_button)
         )
@@ -134,9 +134,6 @@ class OtherToolsWidget(WidgetBox):
     
     def run_schedule_achievements(self):
         return run_script(self.master, os.path.join('ScdAch', 'mainmenu.py'))
-    
-    def run_bpm_checker(self):
-        return run_script(self.master, os.path.join('mini_games', 'bpmfft2.pyw'))
 
     def run_quinifier(self):
         fp = get_clipboard_file_paths()

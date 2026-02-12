@@ -1,57 +1,12 @@
-"""
-这是一个负责任的测量bpm的程序。应用上所有输入而不只是首尾的两个。收敛极快。支持漏拍，漏拍并不会造成任何误差。
-优化：减少了不必要的CPU消耗。
-"""
+import os
+import time
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "shutup"
 
 import pygame as pg
 from PIL import Image as Im, ImageDraw as Imd, ImageFont as Imf
-from time import time
-from math import *
-import numpy as np
-
+from musicallitelib import BPMDetectors
 
 SCREENSIZE = (540, 360)
-BACKGROUND = pg.image.frombuffer(
-    Im.new('RGBA', SCREENSIZE, (0, 0, 0, 255)).tobytes(), SCREENSIZE, 'RGBA')
-
-
-def covalue(a, b, sigma=1/64):
-    return exp(-(b-a)**2/(2*sigma)**2)
-
-
-def deal_with_sample(sample, gap=1/256):
-    "return max freq"
-    t0 = sample[0]
-    t1 = sample[-1]
-    vl = []
-    t = t0
-    while t < t1:
-        v = 0
-        for i in sample:
-            if abs(i-t) < 1/8:
-                v += covalue(i, t)
-        vl.append(v)
-        t += gap
-
-    vl = np.array(vl, dtype=np.float64)
-    vl -= np.mean(vl)
-    sm = abs(np.fft.fft(vl))
-    sm = sm.tolist()
-    tm = np.fft.fftfreq(len(vl), gap)
-    freq = tm.tolist()[sm.index(max(sm))]
-    return abs(freq)
-
-
-def getapprox(sample):
-    return len(sample)/(sample[-1]-sample[0])
-
-
-def getbpm(sample):
-    freq1 = deal_with_sample(sample)
-    freqs = getapprox(sample)
-    times = max(round(freq1/freqs), 1)
-    return freq1*60/times
-
 
 class Text:
     def __init__(self, text: str, pos=(0, 0), color=(255, 255, 255, 255), font=Imf.truetype('arial.ttf', 96)) -> None:
@@ -86,21 +41,29 @@ class Instance:
         self._buffer_text = None
 
     def record(self):
-        self.sample.append(time())
+        self.sample.append(time.perf_counter())
         if len(self.sample) > 1000:
             self.sample = self.sample[1:]
 
-    def get_textbpm(self):
+    def get_textbpms(self):
         if len(self.sample) <= 1:
             # bpm==0
-            return "--.--"
+            return ("--.--",)*4
         if self.sample[-1] == self._buffer_sample:
             # donot change
             return self._buffer_text
         else:
-            self._buffer_text = str(round(getbpm(self.sample), 2))
-            while len(self._buffer_text[self._buffer_text.index("."):]) < 3:
-                self._buffer_text += "0"
+            _bpm_simple = BPMDetectors.get_bpm_simple(self.sample)
+            _bpm_tangent = 60/(self.sample[-1]-self.sample[-2])
+            _bpm_reg = BPMDetectors.get_bpm_regression(self.sample)[0]
+            _bpm_fft = BPMDetectors.get_bpm_fft(self.sample)
+            _bpm_fft /= max(round(_bpm_fft/_bpm_simple), 1)
+            self._buffer_text = (
+                "%.2f" % _bpm_simple,
+                "%.2f" % _bpm_tangent,
+                "%.2f" % _bpm_reg,
+                "%.2f" % _bpm_fft
+            )
             self._buffer_sample = self.sample[-1]
             return self._buffer_text
 
@@ -113,9 +76,19 @@ class Instance:
 def main():
     window = pg.display.set_mode(SCREENSIZE)
     count = 0
-    texts = [Text("BPM:\n--.--", (50, 50)), Text(
-        "RECORD[CLICK/SPACE/ENTER/ZXCVBNM]\nCLEAR[Q/ESC]", (100, 280), font=Imf.truetype('arial.ttf', 20)),
-        Text("count:%i" % count, (350, 40), font=Imf.truetype('arial.ttf', 25))]
+    texts = [
+        Text("BPM:", (50, 30), font=Imf.truetype('arial.ttf', 72)), 
+        Text("RECORD[CLICK/SPACE/ENTER/ZXCVBNM]\nCLEAR[Q/ESC]", (50, 280), font=Imf.truetype('arial.ttf', 20)),
+        Text("count:%i" % count, (350, 40), font=Imf.truetype('arial.ttf', 25)), 
+        Text("[Sec]", (50, 100), font=Imf.truetype('arial.ttf', 25)),
+        Text("[Tan]", (300, 100), font=Imf.truetype('arial.ttf', 25)),
+        Text("[Reg]", (50, 200), font=Imf.truetype('arial.ttf', 25)),
+        Text("[FFT]", (300, 200), font=Imf.truetype('arial.ttf', 25)), 
+        Text("--.--", (80, 120), font=Imf.truetype('arial.ttf', 60)),
+        Text("--.--", (330, 120), font=Imf.truetype('arial.ttf', 60)),
+        Text("--.--", (80, 220), font=Imf.truetype('arial.ttf', 60)),
+        Text("--.--", (330, 220), font=Imf.truetype('arial.ttf', 60))
+    ]
     ins = Instance()
     clock = pg.time.Clock()
     _refresh = True
@@ -143,8 +116,10 @@ def main():
                     texts[2].refresh("count:%i" % count)
                     _refresh = True
         if _refresh:
-            texts[0].refresh("BPM:\n"+ins.get_textbpm())
-            window.blit(BACKGROUND, (0, 0))
+            _texts = ins.get_textbpms()
+            for i in range(4):
+                texts[7+i].refresh(_texts[i])
+            window.fill((0, 0, 0))
             for text in texts:
                 text.show(window)
             _refresh = False
