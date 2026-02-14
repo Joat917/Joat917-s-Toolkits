@@ -2,10 +2,10 @@ from basic_settings import *
 from main_widgets import MainWindow, WidgetBox, PlainText, PushButton
 from common_utilities import get_clipboard_file_paths
 
-def run(master:MainWindow, path:str, without_console=True, *args):
+def run(master:MainWindow, path:str, *, without_console=True, arguments=()):
     if hasattr(master, 'droprunner'):
         full_path = os.path.join(SETTINGS.src_dir, 'musical_lite', path)
-        master.droprunner.run(full_path, arguments=args, without_console=without_console)
+        master.droprunner.run(full_path, arguments=arguments, without_console=without_console)
     else:
         master.messages.put_nowait("DropRunner not found in master window.")
 
@@ -50,13 +50,13 @@ class MusicalLiteWidget(WidgetBox):
     def run_player(self):
         fp = get_clipboard_file_paths()
         if fp and fp.endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac', '.m4a')):
-            return run(self.master, 'pygplayer.py', fp)
+            return run(self.master, 'pygplayer.py', arguments=(fp,))
         file_dialog = QFileDialog(directory=os.path.join(os.path.expanduser("~"), "Music"))
         file_dialog.setFileMode(QFileDialog.ExistingFile)
         file_dialog.setNameFilter("Audio Files (*.mp3 *.wav *.flac *.ogg *.aac *.m4a)")
         if file_dialog.exec_():
             audio_path = file_dialog.selectedFiles()[0]
-            return run(self.master, 'pygplayer.py', audio_path)
+            return run(self.master, 'pygplayer.py', arguments=(audio_path,))
     
     def extract_audio(self):
         from musical_lite.musicallitelib import Converter

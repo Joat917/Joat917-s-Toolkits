@@ -445,3 +445,14 @@ class Spectrogram:
 
         plt.tight_layout()
         plt.show()
+
+    def get_magnitude_at(self, freq, normalized=True, side_count=31):
+        """计算音频信号在指定频率处的分量，并不要求频率必须在self.freqs中。返回一个和self.times长度相同的数组。"""
+        nearest_index = np.searchsorted(self.freqs, freq)
+        nearest_indexes = np.arange(max(0, nearest_index-side_count), min(len(self.freqs), nearest_index+side_count+1), dtype=int)
+        kernel = np.sinc((self.freqs[nearest_indexes] - freq) / (self.freqs[1]-self.freqs[0]))  # 频率域的 sinc 插值核
+        zxx_at_freq = np.dot(kernel, self.Zxx[nearest_indexes,:])  # 对每个时间段的频谱进行加权求和
+        magnitude_at_freq = np.abs(zxx_at_freq)
+        if normalized:
+            magnitude_at_freq = magnitude_at_freq / self.max_audio_value * np.sqrt(self.freqs[1]-self.freqs[0])
+        return magnitude_at_freq

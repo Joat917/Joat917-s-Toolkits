@@ -390,7 +390,7 @@ try:
             )
 
             self.IMG_ROOT = os.path.abspath('.')
-            while 'src' not in os.listdir('.'):
+            while 'src' not in os.listdir(self.IMG_ROOT):
                 self.IMG_ROOT = os.path.dirname(self.IMG_ROOT)
                 if self.IMG_ROOT == os.path.dirname(self.IMG_ROOT):
                     raise FileNotFoundError("Cannot find project root directory")

@@ -9,6 +9,7 @@ WHITE_KEY_HEIGHT = 200
 BLACK_KEY_WIDTH = 24
 BLACK_KEY_HEIGHT = 120
 HALF_KEY_GAP = 1
+ICON_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'icon.png')
 
 class PianoWhiteKey:
     def __init__(self, note_name:str, area:int, index:int, bound_keyname:str=''):
@@ -234,8 +235,10 @@ class PyPiano:
 
     def run(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((WHITE_KEY_WIDTH * 17, WHITE_KEY_HEIGHT))
         pygame.display.set_caption("PyPiano")
+        pygame.display.set_icon(pygame.image.load(ICON_PATH))
+        self.screen = pygame.display.set_mode((WHITE_KEY_WIDTH * 17, WHITE_KEY_HEIGHT))
+        
         running = True
         refresh_countdown = 0
         while running:

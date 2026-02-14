@@ -93,10 +93,13 @@ class MainWindow(QWidget):
         scroll.setWidget(self.content_widget)
         self.content_layout = QVBoxLayout(self.content_widget)
 
-        # self.globalKeyboardListener = None
         self.globalKeyboardListener=KeyboardListener(press_callbacks=[], release_callbacks=[], parent=self, auto_start=True)
         self.globalKeyboardListener.press_callbacks.append(self._globalHotkeyHandler)
         self.hotkey_callbacks = {} # name: callback
+
+        from common_utilities import DropRunner, ClipboardWidget
+        self.droprunner = DropRunner(self)
+        self.clipboard_widget = ClipboardWidget(self)
 
         self.widgets = []
         self.messages = queue.Queue()

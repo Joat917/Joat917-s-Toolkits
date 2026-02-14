@@ -7,6 +7,7 @@ from PIL import Image as Im, ImageDraw as Imd, ImageFont as Imf
 from musicallitelib import BPMDetectors
 
 SCREENSIZE = (540, 360)
+ICON_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'icon.png')
 
 class Text:
     def __init__(self, text: str, pos=(0, 0), color=(255, 255, 255, 255), font=Imf.truetype('arial.ttf', 96)) -> None:
@@ -74,6 +75,8 @@ class Instance:
 
 
 def main():
+    pg.display.set_caption("BPM Counter")
+    pg.display.set_icon(pg.image.load(ICON_PATH))
     window = pg.display.set_mode(SCREENSIZE)
     count = 0
     texts = [

@@ -10,14 +10,10 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     with CheckStarted():
         window = MainWindow(app=app)
-        drop_runner = DropRunner(window)
-        window.droprunner = drop_runner
-        clipboard_widget = ClipboardWidget(parent=window)
-        window.clipboard_widget = clipboard_widget
         window.add(
             InlineCalculatorWidget(parent=window), 
-            clipboard_widget,
-            drop_runner,
+            window.clipboard_widget,
+            window.droprunner,
             KeyDisplayerWidget(master=window),
             StopWatchWidgetBox(master=window),
             ClickerWidget(window),
