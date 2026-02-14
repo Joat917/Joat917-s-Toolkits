@@ -1,0 +1,6 @@
+pywin32
+psutil
+PyQt5
+matplotlib
+pynput
+pyperclip
