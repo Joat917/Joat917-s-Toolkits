@@ -169,11 +169,16 @@ class DropRunner(WidgetBox):
             def callbackfunc():
                 try:
                     os.chdir(run_dir)
-                    proc=subprocess.Popen([app_path, script_path, *arguments], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    etc = ' '.join(f'"{arg}"' for arg in arguments)
+                    proc=subprocess.Popen(f'"{app_path}" "{script_path}" {etc}', creationflags=subprocess.CREATE_NEW_CONSOLE)
                     os.chdir(SETTINGS.working_dir)
                     ret=proc.wait()
                 except KeyboardInterrupt:
                     ret = -1073741510
+                except Exception as e:
+                    with open(SETTINGS.error_log_file, 'a+', encoding='utf-8') as f:
+                        f.write(f"Error running script {script_path}:\n{traceback.format_exc()}\n")
+                    ret = -1
                 finally:
                     os.chdir(SETTINGS.working_dir)
                 if ret>=0x80000000:

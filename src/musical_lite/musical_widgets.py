@@ -83,7 +83,7 @@ class MusicalLiteWidget(WidgetBox):
         fps = get_clipboard_file_paths()
         for fp in fps:
             if fp and fp.lower().endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac', '.m4a')):
-                return run(self.master, 'pygplayer.py', arguments=(fp,))
+                return run(self.master, 'audio_decompose.py', arguments=(fp,), without_console=False)
         file_dialog = QFileDialog(directory=os.path.join(os.path.expanduser("~"), "Music"))
         file_dialog.setFileMode(QFileDialog.ExistingFile)
         file_dialog.setNameFilter("Audio Files (*.mp3 *.wav *.flac *.ogg *.aac *.m4a)")
