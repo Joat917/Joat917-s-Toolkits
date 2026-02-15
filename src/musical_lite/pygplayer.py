@@ -2,7 +2,7 @@ import os, sys
 import numpy as np
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame
-from musicallitelib import Converter, Spectrogram
+from musicallitelib import Converter, Spectrogram, Spectrogram2
 
 FPS=60
 MAX_DB = 50
@@ -54,6 +54,10 @@ class PyGPlayer:
 
         self.bin_freqs = np.concatenate([np.arange(22, 46+1, 1), np.array([440*2**((i/4-69)/12) for i in range(32*4,128*4)])])
         self.bin_edges = np.concatenate([np.arange(20, 44+1, 1), np.array([440*2**(((i-0.5)/4-69)/12) for i in range(32*4,128*4+1)])])
+
+        # self.bin_freqs = np.concatenate([np.arange(22, 46+1, 4), np.array([440*2**((i-69)/12) for i in range(32,128)])])
+        # self.spectrogram = Spectrogram2(np.mean(np.asarray(self.audio_segment.get_array_of_samples()).reshape(-1, self.audio_segment.sample_width),axis=1), self.audio_segment.frame_rate, self.bin_freqs)
+        # self.bin_edges = np.concatenate([np.arange(20, 44+1, 4), np.array([440*2**(((i-0.5)-69)/12) for i in range(32,128+1)])])
         self.bins_count = len(self.bin_freqs)
         self.magnitudes_cache = np.zeros((self.bins_count, len(self.spectrogram.times)), dtype=np.float64)
         for i in range(self.bins_count):
@@ -186,7 +190,6 @@ class PyGPlayer:
         current_segment_index = self.spectrogram.times.searchsorted(elapsed_time/1000)
         freq_binned = (self.bin_edges[:-1] + self.bin_edges[1:]) / 2
         magnitude_binned = self.get_magnitude_data(current_segment_index)
-        magnitude_binned = magnitude_binned * np.sqrt(freq_binned/(self.spectrogram.freqs[1]-self.spectrogram.freqs[0])) / 2  # 根据频率调整幅度，使得高频部分更明显
         
         magnitude_in_dB = 20 * np.log10(magnitude_binned + 1e-7)
         magnitude_in_dB = np.where(np.isfinite(magnitude_in_dB), magnitude_in_dB, -60)  # 将非数替换为-60dB
@@ -271,17 +274,17 @@ class PyGPlayer:
         elapsed_time/=1000
         time_range = elapsed_time-5, elapsed_time+5
         segment_indices = np.where((self.spectrogram.times >= time_range[0]) & (self.spectrogram.times <= time_range[1]))[0]
+        assert len(segment_indices)>0, "No spectrogram data in the specified time range."
         magnitude_data = np.array([self.get_magnitude_data(i) for i in segment_indices])
-        magnitude_data = magnitude_data * np.sqrt(np.broadcast_to(self.bin_freqs[np.newaxis,:],magnitude_data.shape)/(self.spectrogram.freqs[1]-self.spectrogram.freqs[0])) / 2  # 根据频率调整幅度，使得高频部分更明显
         magnitude_in_dB = 20 * np.log10(magnitude_data + 1e-7)
         magnitude_in_dB = np.where(np.isfinite(magnitude_in_dB), magnitude_in_dB, -60)  # 将非数替换为-60dB
         magnitude_in_dB = np.clip(magnitude_in_dB, -MAX_DB, 0)  # 限制在-60dB到0dB之间
         magnitude_ratio = magnitude_in_dB/MAX_DB+1 # height/axis0: frequency, width/axis1: time
         magnitude_ratio = magnitude_ratio.transpose()[:,::-1] # height: time(top:new, bottom:old), width: frequency
         picture_colored = np.stack([
-            magnitude_ratio**2*255, 
-            magnitude_ratio*192,
-            magnitude_ratio*64
+            magnitude_ratio**3*255, 
+            magnitude_ratio**2*192,
+            magnitude_ratio**2*64
         ], axis=-1).astype(np.uint8)
         DY = (1-height_ratio)*surface.get_height()
         TY = height_ratio*surface.get_height()

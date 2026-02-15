@@ -381,17 +381,30 @@ class BPMDetectors:
                     return
 
 class Spectrogram:
-    def __init__(self, audio_data, sample_rate, nperseg=4096, noverlap=3072):
+    def __init__(self, audio_data, sample_rate):
         from scipy.signal import stft
         self.audio_data = audio_data
         self.max_audio_value = np.max(np.abs(audio_data)).astype(np.float64)
         self.sample_rate = sample_rate
-        self.freqs, self.times, self.Zxx = stft(audio_data, fs=sample_rate, nperseg=nperseg, noverlap=noverlap)
+
+        nperseg_lowfreq=8192
+        noverlap_lowfreq=7168
+        nperseg_highfreq=2048
+        noverlap_highfreq=1024
+        critical_freq = 800
+
+        freqs_lowfreq, times_lowfreq, Zxx_lowfreq = stft(audio_data, fs=sample_rate, nperseg=nperseg_lowfreq, noverlap=noverlap_lowfreq)
+        freqs_highfreq, times_highfreq, Zxx_highfreq = stft(audio_data, fs=sample_rate, nperseg=nperseg_highfreq, noverlap=noverlap_highfreq)
+        assert np.allclose(times_lowfreq, times_highfreq), "Low and high frequency STFT should have the same time bins."
+        self.freqs = np.concatenate([freqs_lowfreq[freqs_lowfreq<=critical_freq], freqs_highfreq[freqs_highfreq>critical_freq]])
+        self.times = times_lowfreq
+        self.Zxx = np.concatenate([Zxx_lowfreq[freqs_lowfreq<=critical_freq, :], Zxx_highfreq[freqs_highfreq>critical_freq, :]], axis=0)
+
         self.magnitudes = np.abs(self.Zxx) # unit: amplitude * Hz^-0.5
-        self.magnitudes_normalized = self.magnitudes / self.max_audio_value * np.sqrt(self.freqs[1]-self.freqs[0])
+        self.magnitudes_normalized = self.magnitudes / self.max_audio_value * np.sqrt(self.freqs[:,np.newaxis])
+        self.magnitudes_normalized /= np.max(self.magnitudes_normalized)  # 归一化到0-1范围
         self.magnitude_per_segment = np.sqrt(np.mean(self.magnitudes_normalized * self.magnitudes_normalized, axis=0))
         
-
     def hps(self, segment_idx, n_harmonics=5):
         # 计算信号的FFT
         min_freq_index = self.freqs.searchsorted(20)
@@ -449,10 +462,67 @@ class Spectrogram:
     def get_magnitude_at(self, freq, normalized=True, side_count=31):
         """计算音频信号在指定频率处的分量，并不要求频率必须在self.freqs中。返回一个和self.times长度相同的数组。"""
         nearest_index = np.searchsorted(self.freqs, freq)
+        if nearest_index==0:
+            nearest_index = 1
+        Delta_freq = self.freqs[nearest_index] - self.freqs[nearest_index-1]
         nearest_indexes = np.arange(max(0, nearest_index-side_count), min(len(self.freqs), nearest_index+side_count+1), dtype=int)
-        kernel = np.sinc((self.freqs[nearest_indexes] - freq) / (self.freqs[1]-self.freqs[0]))  # 频率域的 sinc 插值核
-        zxx_at_freq = np.dot(kernel, self.Zxx[nearest_indexes,:])  # 对每个时间段的频谱进行加权求和
-        magnitude_at_freq = np.abs(zxx_at_freq)
+        kernel = np.sinc((self.freqs[nearest_indexes] - freq) / Delta_freq)  # 频率域的 sinc 插值核
+        magnitude_at_freq = np.dot(kernel, self.magnitudes[nearest_indexes, :])  # 对每个时间段进行插值计算
         if normalized:
-            magnitude_at_freq = magnitude_at_freq / self.max_audio_value * np.sqrt(self.freqs[1]-self.freqs[0])
+            magnitude_at_freq = magnitude_at_freq / self.max_audio_value * np.sqrt(freq)
+        return magnitude_at_freq
+
+
+class Spectrogram2:
+    def __init__(self, audio_data, sample_rate, freqs):
+        import pywt
+        import tqdm
+        self.audio_data = np.array(audio_data)
+        self.max_audio_value = np.max(np.abs(audio_data)).astype(np.float64)
+        self.sample_rate = round(sample_rate)
+        wavelet = 'cmor0.15-1.0'  # 复 Morlet 小波
+        scales = (pywt.central_frequency(wavelet) * sample_rate / np.array(freqs))
+
+        audio_segments = np.array_split(self.audio_data, len(self.audio_data) // (self.sample_rate*10))  # 每10秒一个段
+        time_segments = np.array_split(np.arange(len(self.audio_data)) / self.sample_rate, len(self.audio_data) // (self.sample_rate*10))
+        coeffs_list = []
+        times_list = []
+        for segment,time_segment in zip(tqdm.tqdm(audio_segments), time_segments):
+            coeffs, freqs = self.cwt(segment, scales, wavelet, sampling_period=np.float32(1/sample_rate), method='fft')
+            chosen_indices = np.arange(0, coeffs.shape[1], coeffs.shape[1]//600, dtype=np.int32)  # 每段取600个时间点
+            coeffs_list.append(coeffs[:, chosen_indices])
+            times_list.append(time_segment[chosen_indices])
+            
+        self.freqs = freqs
+        self.times = np.concatenate(times_list)
+        self.coeffs = np.concatenate(coeffs_list, axis=1)
+        assert self.times.shape[0]>1, "Not enough time segments."
+        assert self.coeffs.shape == (self.freqs.shape[0], self.times.shape[0]), "Coeffs shape mismatch."
+        
+        self.dtime = self.times[1] - self.times[0]
+        self.magnitudes = np.abs(self.coeffs) / self.max_audio_value * np.sqrt(self.freqs[:, np.newaxis])
+        self.magnitudes /= np.max(self.magnitudes)
+        self.magnitude_per_segment = np.sqrt(np.mean(self.magnitudes * self.magnitudes, axis=0))
+        pass
+
+    @staticmethod
+    def cwt(data, scales, wavelet, sampling_period=1.0, method='fft'):
+        try:
+            import ptwt, torch
+            if not torch.cuda.is_available():
+                raise ImportError("CUDA is not available for ptwt.")
+            data_tensor = torch.from_numpy(data).float().cuda()
+            coeffs_tensor, freqs = ptwt.cwt(data_tensor, scales, wavelet, sampling_period)
+            coeffs = coeffs_tensor.cpu().numpy()
+            freqs = np.asarray(freqs)
+            return coeffs, freqs
+        except ImportError:
+            import pywt
+            coeffs, freqs = pywt.cwt(data, scales, wavelet, sampling_period, method)
+            return coeffs, freqs
+            
+    def get_magnitude_at(self, freq):
+        nearest_index = np.searchsorted(self.freqs, freq)
+        nearest_index = np.clip(nearest_index, 0, len(self.freqs)-1)
+        magnitude_at_freq = self.magnitudes[nearest_index, :]
         return magnitude_at_freq

@@ -36,8 +36,14 @@ class MusicalLiteWidget(WidgetBox):
         self.extract_audio_button = PushButton(
             onclick=self.extract_audio, 
             text="Extract Audio",
-            width=240,
+            width=230,
             bg_color=QColor(250, 150, 150)
+        )
+        self.audio_decompose_button = PushButton(
+            onclick=self.audio_decompose, 
+            text = "Seperate Vocal/Drum/Base/Melody",
+            width=440, 
+            bg_color=QColor(150, 250, 150)
         )
         self.addLine(
             self.player_button,
@@ -45,12 +51,15 @@ class MusicalLiteWidget(WidgetBox):
             self.bpm_button,
         ).addLine(
             self.extract_audio_button
+        ).addLine(
+            self.audio_decompose_button
         )
 
     def run_player(self):
-        fp = get_clipboard_file_paths()
-        if fp and fp.endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac', '.m4a')):
-            return run(self.master, 'pygplayer.py', arguments=(fp,))
+        fps = get_clipboard_file_paths()
+        for fp in fps:
+            if fp and fp.lower().endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac', '.m4a')):
+                return run(self.master, 'pygplayer.py', arguments=(fp,))
         file_dialog = QFileDialog(directory=os.path.join(os.path.expanduser("~"), "Music"))
         file_dialog.setFileMode(QFileDialog.ExistingFile)
         file_dialog.setNameFilter("Audio Files (*.mp3 *.wav *.flac *.ogg *.aac *.m4a)")
@@ -70,4 +79,15 @@ class MusicalLiteWidget(WidgetBox):
             converter.video_to_mp3(video_path, audio_path)
             self.master.messages.put_nowait(f"Audio extracted to: {audio_path}")
 
+    def audio_decompose(self):
+        fps = get_clipboard_file_paths()
+        for fp in fps:
+            if fp and fp.lower().endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac', '.m4a')):
+                return run(self.master, 'pygplayer.py', arguments=(fp,))
+        file_dialog = QFileDialog(directory=os.path.join(os.path.expanduser("~"), "Music"))
+        file_dialog.setFileMode(QFileDialog.ExistingFile)
+        file_dialog.setNameFilter("Audio Files (*.mp3 *.wav *.flac *.ogg *.aac *.m4a)")
+        if file_dialog.exec_():
+            audio_path = file_dialog.selectedFiles()[0]
+            return run(self.master, 'audio_decompose.py', arguments=(audio_path,))
         

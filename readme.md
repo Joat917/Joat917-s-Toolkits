@@ -12,6 +12,7 @@
   - [Common-Utilities](#common-utilities)
   - [Small-Tools](#small-tools)
   - [Mini-Games](#mini-games)
+  - [Musical-Lite](#musical-lite)
 
 
 ## 简介
@@ -50,8 +51,6 @@
 本项目需要用到的快捷键必须在PowerToys中设置。请先从微软商店中安装PowerToys，然后按照你的喜好调整PowerToys中的快捷键设置和按键映射。你只需要保证F13-F22按键可以在键盘上按下，并将无用的Copilot键(Win+LShift+F23)映射到F24。
 
 ## 项目结构
-
-<!-- 2026.2.15更新 -->
 
 ```
 Joat917-s-Toolkit
@@ -105,7 +104,6 @@ Joat917-s-Toolkit
 - `keyboard_displayer.py`：在屏幕右下角实时显示当前按下的键盘按键。通过主窗口的键盘监听器实现。
 - `clickclick_clicker.py`：一个非常普通的连点器。通过`pynput`控制鼠标，并从主窗口的键盘监听器获取全局按键输入。
 - `stop_watch.py`：屏幕左下角显示的数码管秒表。通过右键菜单或者快捷键控制，循环开始、停止、重置。
-- `chaotic_pendulum.py`：混沌摆桌面摆件。通过使用RK45方法数值求解混沌摆系统满足的欧拉-拉格朗日方程并线性插值，实时显示该系统随时间演化后的状态。~~（该摆件并不依赖于`basic_settings`中导入的第三方库和全局变量，但是确实以独立组件的形式呈现在主窗口中，因此被放在了这个包里。）~~ 该组件在之后可能被剥离，并作为一个相对独立的功能放在`phys_demo`包中。
 
 ### Small-Tools
 
@@ -119,6 +117,7 @@ Joat917-s-Toolkit
 - `script_generator.py`：脚本生成器，记录一段时间的所有键盘操作为一个Python脚本。依赖于`pynput`和`pyautogui`。
 - `quinify_quine.py`：在一个Python脚本内插入一个函数`quinified()`，该函数在调用后返回这个脚本自身，而且不涉及任何魔法变量（禁止使用__file__或__code__）。值得一提的是，这个文件本身就是一个Quine。
 - `gushen_coder.py`：乱码生成和解码工具。~~（如果乱码包含了全部原始数据，那么我愿称之为古神语；不过正宗的古神语需要文本生成音频然后倒放再识别文字）~~
+- `chaotic_pendulum.py`：混沌摆桌面摆件。通过使用RK45方法数值求解混沌摆系统满足的欧拉-拉格朗日方程并线性插值，使用pillow绘制并基于pyQt5实时显示该系统随时间演化后的状态。
 - `custompyminify.py`：调用`python_minifier`将Python脚本最小化。
 - `unitex_jsrunner.py`：使用`execjs`直接执行`UniTex.js`，将LaTeX表达式转换为Unicode字符串。`UniTex.js`内嵌于该Python代码文件中。
 - `small_tools_widgets.py`：所有工具在主窗口中的入口。InlineCalculator因为比较常用，单独放在一个盒子中，其它工具放在另一个盒子中。一些工具会试图从剪贴板中获取运行所需的参数。
@@ -128,3 +127,14 @@ Joat917-s-Toolkit
 曾经写过的小游戏。所有游戏都基于`pygame`实现。
 
 ... 
+
+### Musical-Lite
+
+一个音乐相关的工具集合，包含BPM探测器、音频分离器、钢琴键盘等功能。
+
+- `musicallitelib.py`：实现了音频格式转换器、BPM计数器、频谱计算等功能。格式转换依赖于ffmpeg，其中读取和写入数据还依赖于pydub。BPM计数器和频谱计算功能依赖于scipy。另一个频谱计算函数依赖于pywt，并可选依赖于ptwt。
+- `pygbpm.py`：基于`pygame`实现的BPM探测器。需要`musicallitelib.py`中的BPM计数器功能，仅依赖于scipy。
+- `pygpiano.py`：基于`pygame`实现的钢琴键盘。需要`musicallitelib.py`中的音频合成功能，但不依赖于ffmpeg、pydub或者scipy。
+- `pygplayer.py`：基于`pygame`实现的音频播放器，播放时将滚动显示频谱。需要`musicallitelib.py`中的音频读取和频谱计算功能，同时依赖于ffmpeg、pydub和scipy。
+- `audio_decompose.py`：将音频分离为伴奏和人声。控制台工具，要求环境中安装有torchaudio和torchcodec。
+- `musical_lite_widgets.py`：所有音乐相关工具在主窗口中的入口。
