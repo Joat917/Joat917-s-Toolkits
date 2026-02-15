@@ -3,4 +3,3 @@ from .clipboard_widget import ClipboardContext, ClipboardWidget, get_clipboard_f
 from .drop_runner import DropRunner
 from .keyboard_displayer import KeyDisplayerManager, KeyDisplayerWidget
 from .stop_watch import StopWatchMainWindow, StopWatchWidgetBox
-from .chaotic_pendulum import ChaoticPendulumWidget

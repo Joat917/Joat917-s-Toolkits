@@ -48,10 +48,10 @@ class ClickerWidget(WidgetBox):
 
         self.enabled = False
         self.clicking = False
-        self.click_timer = QTimer()
+        self.click_timer = QTimer(self)
         self.click_timer.timeout.connect(self.perform_click)
 
-        self.mouseCtrl=pynput.mouse.Controller()
+        self.mouseController = None
         self._mouse_down = False
 
         if self.master.globalKeyboardListener is not None:
@@ -69,6 +69,7 @@ class ClickerWidget(WidgetBox):
             self.mouse_button_switcher.show()
             self.mouse_button_switcher_label.show()
             self.hotkey_guideline.show()
+            self.mouseController = pynput.mouse.Controller().__enter__()
         else:
             self.switch_button_label.setText("Clicker is Disabled")
             self.interval_input.hide()
@@ -76,9 +77,12 @@ class ClickerWidget(WidgetBox):
             self.mouse_button_switcher.hide()
             self.mouse_button_switcher_label.hide()
             self.hotkey_guideline.hide()
-
-        if not self.enabled or self.clicking:
-            self.stop_clicking()
+            if self.mouseController is not None:
+                self.stop_clicking()
+                self.mouseController.__exit__(None, None, None)
+                self.mouseController = None
+            if self.clicking:
+                self.stop_clicking()
 
     def toggle_mouse_button(self, checked):
         if checked:
@@ -96,18 +100,21 @@ class ClickerWidget(WidgetBox):
 
     def stop_clicking(self):
         self.click_timer.stop()
-        if self._mouse_down:
-            self.mouseCtrl.release(pynput.mouse.Button.left)
-            self.mouseCtrl.release(pynput.mouse.Button.right)
-            self._mouse_down = False
         self.clicking = False
+        if self._mouse_down and self.mouseController is not None:
+            self.mouseController.release(pynput.mouse.Button.left)
+            self.mouseController.release(pynput.mouse.Button.right)
+            self._mouse_down = False
 
     def perform_click(self):
+        if self.mouseController is None:
+            self._mouse_down = False
+            return
         if not self._mouse_down:
-            self.mouseCtrl.press(self._mouse_button)
+            self.mouseController.press(self._mouse_button)
             self._mouse_down = True
         else:
-            self.mouseCtrl.release(self._mouse_button)
+            self.mouseController.release(self._mouse_button)
             self._mouse_down = False
 
     def start_clicking_callback(self, key):
@@ -119,7 +126,7 @@ class ClickerWidget(WidgetBox):
             self.stop_clicking()
 
     def closeEvent(self, a0):
-        self.stop_clicking()
+        self.toggle_enabled(False)
         if self.master.globalKeyboardListener is not None:
             self.master.globalKeyboardListener.press_callbacks.remove(self.start_clicking_callback)
             self.master.globalKeyboardListener.release_callbacks.remove(self.stop_clicking_callback)

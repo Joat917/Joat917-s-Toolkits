@@ -1,7 +1,17 @@
+# 找到正确的工作目录
+import os, sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+while not current_dir.endswith("src"):
+    current_dir = os.path.dirname(current_dir)
+    if current_dir==os.path.dirname(current_dir):
+        raise RuntimeError("Cannot find the working directory.")
+sys.path.append(current_dir)
+
+# 主程序
+from basic_settings import *
+from main_widgets import WidgetBox, PlainText, SwitchButton, MainWindow, CustomMenu, CheckStarted
 import numpy as np
-import time
 from scipy.integrate import RK45
-from PIL import Image, ImageDraw, ImageTk
 import bisect
 
 class Pendulum:
@@ -127,127 +137,7 @@ a和b是次级独立杆子支点两侧的长度，c是主级杆子支点距离�
         return self.theta_list[i]*a+self.theta_list[i+1]*b, self.phi_list[i]*a+self.phi_list[i+1]*b
 
 
-def test():
-    "测试摆的部分，并绘制图像"
-    from matplotlib import pyplot as plt
-    a,b,c,d=2,3.5,1.6,7
-    T=40
-    p=Pendulum((a+b)/(c+d), c/(c+d), a/(a+b))
-    theta_list=[p.theta]
-    phi_list=[p.phi]
-    t_list=[p.t]
-    while p.t<T:
-        p.step()
-        theta_list.append(p.theta)
-        phi_list.append(p.phi)
-        t_list.append(p.t)
-    plt.plot(t_list, theta_list)
-    plt.plot(t_list, phi_list)
 
-    p2=Pendulum((a+b)/(c+d), c/(c+d), a/(a+b))
-    p2.theta=theta_list[0]+1e-3
-    p2.phi=phi_list[0]-1e-3
-    theta_list=[p2.theta]
-    phi_list=[p2.phi]
-    t_list=[p2.t]
-    while p2.t<T:
-        p2.step()
-        theta_list.append(p2.theta)
-        phi_list.append(p2.phi)
-        t_list.append(p2.t)
-    plt.plot(t_list, theta_list)
-    plt.plot(t_list, phi_list)
-    plt.legend(["theta1","phi1","theta2","phi2"])
-    plt.show()
-
-
-try:
-    import tkinter as tk
-    class DisplayTK(tk.Tk):
-        def __init__(self, a,b,c,d,s=100, fps=10, timescale=1):
-            "使用特定参数初始化摆，然后给定图片放大比例、帧率，初始化显示模块"
-            super().__init__()
-            self.geometry("+1000+400")
-            self.overrideredirect(True)
-            self.config(bg="black")
-            self.attributes("-transparentcolor", "black")
-
-            self.label=tk.Label(self)
-            self.label.config(bg='black')
-            self.label.pack()
-            self.label.bind("<ButtonPress-1>", self.on_drag_start)
-            self.label.bind("<B1-Motion>", self.on_drag_motion)
-            self.label.bind("<Button-3>", self.show_context_menu)
-
-            self.context_menu = tk.Menu(self, tearoff=0)
-            self.context_menu.add_command(label="RESET", command=self.reset_pendulum)
-            self.context_menu.add_command(label="TOPMOST", command=self.set_topmost)
-            self.context_menu.add_command(label="CLOSE", command=self.destroy)
-
-            self.a=a
-            self.b=b
-            self.c=c
-            self.d=d
-            self.s=s
-            self.timescale=timescale
-
-            self.image_generator=get_image_renderer(Pendulum_Manager(a,b,c,d), s=s, fps=fps/timescale)
-            self.fps=fps
-            self.top_most_status=False
-            self.set_topmost()
-
-            self._old_tick_time=0
-            self.update_frame()
-
-        def on_drag_start(self, event):
-            self.drag_start_x = event.x_root
-            self.drag_start_y = event.y_root
-            self.image_offset_x = self.winfo_x() - event.x_root
-            self.image_offset_y = self.winfo_y() - event.y_root
-
-        def on_drag_motion(self, event):
-            x = event.x_root + self.image_offset_x
-            y = event.y_root + self.image_offset_y
-            self.geometry(f"+{x}+{y}")
-
-        def show_context_menu(self, event):
-            try:
-                self.context_menu.tk_popup(event.x_root, event.y_root)
-            finally:
-                self.context_menu.grab_release()
-
-        def update_frame(self):
-            dt=self._old_tick_time+1/self.fps-time.perf_counter()
-            if dt>0:
-                self._old_tick_time+=1/self.fps
-                self.after(int(dt*1000), self.update_frame)
-            else:
-                self._old_tick_time=time.perf_counter()
-                self.after(1, self.update_frame)
-            im=self.image_generator()
-            phim=ImageTk.PhotoImage(im)
-            self.label.config(image=phim)
-            self.label.image=phim
-                
-
-        def set_topmost(self):
-            if self.top_most_status:
-                self.top_most_status=False
-                self.attributes("-topmost", False)
-            else:
-                self.top_most_status=True
-                self.attributes("-topmost", True)
-
-        def reset_pendulum(self):
-            self.image_generator=get_image_renderer(Pendulum_Manager(self.a,self.b,self.c,self.d), s=self.s, fps=self.fps/self.timescale)
-
-except ImportError:
-    pass
-
-
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QWidget, QLabel, QMenu, QApplication
-from PyQt5.QtGui import QPixmap, QImage
 class DisplayQt(QWidget):
     def __init__(self, a,b,c,d,s=200, fps=10, timescale=1, parent=None):
         super().__init__(parent=parent)
@@ -346,64 +236,62 @@ def get_image_renderer(q:Pendulum_Manager, s=100, fps=10):
         return image_renderer.send(None)
     return get_image
 
-try:
-    from basic_settings import *
-    from main_widgets import WidgetBox, PlainText, SwitchButton, MainWindow, CustomMenu
-    class DisplayAdvanced(DisplayQt):
-        def _init_ui(self, s):
-            self.label = QLabel(self)
-            self.label.setGeometry(0, 0, 2*s, 2*s)
-            self.label.setStyleSheet("background-color: transparent;")
-            self.label.mousePressEvent = self.on_drag_start
-            self.label.mouseMoveEvent = self.on_drag_motion
-            self.label.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.label.customContextMenuRequested.connect(self.show_context_menu)
 
-            self.context_menu = CustomMenu(self)
-            self.context_menu.addAction("RESET", self.reset_pendulum)
-            self.context_menu.addAction("CLOSE", self.close)
+class DisplayAdvanced(DisplayQt):
+    def _init_ui(self, s):
+        self.label = QLabel(self)
+        self.label.setGeometry(0, 0, 2*s, 2*s)
+        self.label.setStyleSheet("background-color: transparent;")
+        self.label.mousePressEvent = self.on_drag_start
+        self.label.mouseMoveEvent = self.on_drag_motion
+        self.label.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.label.customContextMenuRequested.connect(self.show_context_menu)
 
-            if self.master is not None:
-                self.master.trayWidget.add_action("Pendulum:Reset", self.reset_pendulum)
+        self.context_menu = CustomMenu(self)
+        self.context_menu.addAction("RESET", self.reset_pendulum)
+        self.context_menu.addAction("CLOSE", self.close)
 
-        def close(self):
-            if self.master is not None:
-                self.master.trayWidget.remove_action("Pendulum:Reset")
-            super().close()
+        if self.master is not None:
+            self.master.trayWidget.add_action("Pendulum:Reset", self.reset_pendulum)
 
-    class ChaoticPendulumWidget(WidgetBox):
-        def __init__(self, mainwindow:MainWindow):
-            super().__init__(parent=mainwindow, title="Chaotic Pendulum")
+    def close(self):
+        if self.master is not None:
+            self.master.trayWidget.remove_action("Pendulum:Reset")
+        super().close()
+
+
+class ChaoticPendulumWidget(WidgetBox):
+    def __init__(self, mainwindow:MainWindow):
+        super().__init__(parent=mainwindow, title="Chaotic Pendulum")
+        self.pendulum_display = None
+        self.toggle_button = SwitchButton(
+            onturnon = self.enable_display,
+            onturnoff = self.disable_display,
+        )
+        self.status_label = PlainText(
+            text="Disabled", 
+            parent=self,
+        )
+        self.addLine(self.toggle_button, self.status_label)
+
+    def enable_display(self):
+        if self.pendulum_display is not None:
+            self.disable_display()
+        self.pendulum_display = DisplayAdvanced(2,3.5,1.6,7, fps=30, timescale=3, parent=self.master)
+        self.pendulum_display.show()
+        self.status_label.setText("Enabled")
+
+    def disable_display(self):
+        if self.pendulum_display is not None:
+            self.pendulum_display.close()
             self.pendulum_display = None
-            self.toggle_button = SwitchButton(
-                onturnon = self.enable_display,
-                onturnoff = self.disable_display,
-            )
-            self.status_label = PlainText(
-                text="Disabled", 
-                parent=self,
-            )
-            self.addLine(self.toggle_button, self.status_label)
-
-        def enable_display(self):
-            if self.pendulum_display is not None:
-                self.disable_display()
-            self.pendulum_display = DisplayAdvanced(2,3.5,1.6,7, fps=30, timescale=3, parent=self.master)
-            self.pendulum_display.show()
-            self.status_label.setText("Enabled")
-
-        def disable_display(self):
-            if self.pendulum_display is not None:
-                self.pendulum_display.close()
-                self.pendulum_display = None
-            self.status_label.setText("Disabled")
-except ImportError:
-    pass
+        self.status_label.setText("Disabled")
 
 
 if __name__=="__main__":
-    # DisplayTK(2,3.5,1.6,7, fps=30, timescale=3).mainloop()
-    app = QApplication([])
-    DisplayQt(2,3.5,1.6,7, fps=30, timescale=3).show()
-    sys.exit(app.exec_()) 
+    with CheckStarted("chaotic_pendulum.pid"):
+        app = QApplication(sys.argv)
+        DisplayQt(2,3.5,1.6,7, fps=30, timescale=3).show()
+        ret = app.exec_()
+    os._exit(ret)
 

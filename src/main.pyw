@@ -1,7 +1,7 @@
 from basic_settings import *
 from main_widgets import CheckStarted, MainWindow, WidgetBox, PlainText, SwitchButton, PushButton
-from common_utilities import StopWatchWidgetBox, DropRunner, KeyDisplayerWidget, ClickerWidget, ClipboardWidget, ChaoticPendulumWidget
-from small_tools.small_tools_widgets import InlineCalculatorWidget, OtherToolsWidget, HotkeyGuideWidget
+from common_utilities import StopWatchWidgetBox, DropRunner, KeyDisplayerWidget, ClickerWidget, ClipboardWidget
+from small_tools.small_tools_widgets import InlineCalculatorWidget, OtherToolsWidget, HotkeyGuideWidget, ChaoticPendulumWidget, KillersWidget
 from mini_games.mini_games_widgets import MiniGamesWidget
 from musical_lite.musical_widgets import MusicalLiteWidget
 
@@ -18,6 +18,7 @@ if __name__ == "__main__":
             StopWatchWidgetBox(master=window),
             ClickerWidget(window),
             ChaoticPendulumWidget(mainwindow=window),
+            KillersWidget(window),
             OtherToolsWidget(parent=window),
             MusicalLiteWidget(parent=window),
             MiniGamesWidget(parent=window),

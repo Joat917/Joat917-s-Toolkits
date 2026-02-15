@@ -2,10 +2,18 @@ from basic_settings import *
 from .popup_window import ConfirmationPopup
 
 class CheckStarted:
-    def __init__(self):
-        self.pid_file = os.path.join(SETTINGS.working_dir, "app.pid")
-        self.force_kill = '--forceKillAllExistingInstances' in sys.argv
-        pass
+    def __init__(self, lock_file_name="app.pid", *, force_kill=None):
+        """
+        检查是否已有实例在运行，如果有，询问用户是否要终止已有实例。
+        :param lock_file_name: 可选，指定PID锁文件名，默认为app.pid
+        :param force_kill: 可选，是否强制终止已有实例，默认会检查是否传入--forceKillAllExistingInstances参数
+        """
+        self.pid_file = os.path.join(SETTINGS.working_dir, lock_file_name)
+        if force_kill is None:
+            self.force_kill = '--forceKillAllExistingInstances' in sys.argv
+        else:
+            self.force_kill = bool(force_kill)
+
 
     def on_user_response(self, response:bool):
         if response:

@@ -1,5 +1,5 @@
 from basic_settings import *
-from main_widgets import MainWindow, WidgetBox, PlainText, PushButton
+from main_widgets import MainWindow, WidgetBox, PlainText, PushButton, SwitchButton
 from common_utilities import get_clipboard_file_paths, get_clipboard_text, get_clipboard_image
 
 def run_tool(master:MainWindow, script_path:str, *args):
@@ -156,6 +156,109 @@ class OtherToolsWidget(WidgetBox):
         if os.path.exists(self.tempimagefile):
             os.remove(self.tempimagefile)
         return super().close()
+    
+class ChaoticPendulumWidget(WidgetBox):
+    def __init__(self, mainwindow:MainWindow):
+        super().__init__(parent=mainwindow, title="Chaotic Pendulum")
+        self.pendulum_display = None
+        self.toggle_button = SwitchButton(
+            onturnon = self.enable_display,
+            onturnoff = self.disable_display,
+        )
+        self.status_label = PlainText(
+            text="Disabled", 
+            parent=self,
+        )
+        self.addLine(self.toggle_button, self.status_label)
+        self.timer = QTimer(self)
+
+    def enable_display(self):
+        self.status_label.setText("Enabled")
+        self.timer.timeout.connect(self.check_pendulum)
+        self.timer.start(1000)
+        if not self.pendulum_started():
+            return run_script(self.master, 'small_tools/chaotic_pendulum.py')
+    
+    def pendulum_started(self):
+        lock_file = os.path.join(SETTINGS.working_dir, 'chaotic_pendulum.pid')
+        if not os.path.exists(lock_file):
+            return False
+        try:
+            with open(lock_file, 'r') as f:
+                pid = int(f.read().strip())
+            return psutil.pid_exists(pid)
+        except Exception:
+            return False
+    
+    def check_pendulum(self):
+        if not self.pendulum_started():
+            if self.toggle_button.state:
+                self.toggle_button.mousePressEvent(None)  # 自动关闭显示，将自动调用disable_display
+    
+    def disable_display(self):
+        lock_file = os.path.join(SETTINGS.working_dir, 'chaotic_pendulum.pid')
+        if not os.path.exists(lock_file):
+            return
+        try:
+            with open(lock_file, 'r') as f:
+                pid = int(f.read().strip())
+            if psutil.pid_exists(pid):
+                os.kill(pid, 9)
+        except Exception:
+            pass
+        self.timer.stop()
+        self.timer.timeout.disconnect(self.check_pendulum)
+        self.status_label.setText("Disabled")
+        # 故意留下pid文件
+        return
+    
+class KillersWidget(WidgetBox):
+    def __init__(self, parent:MainWindow=None):
+        super().__init__(
+            parent=parent,
+            title="Killers", 
+        )
+        self.restart_explorer_button = PushButton(
+            onclick=self.restart_explorer, 
+            text="Restart Explorer", 
+            width=230, 
+            bg_color=QColor(250, 100, 100)
+        )
+        self.suiside_button = PushButton(
+            onclick=self.kill_python, 
+            text="Kill All Python", 
+            width=210,
+            bg_color=QColor(250, 150, 150)
+        )
+        self.addLine(self.restart_explorer_button, self.suiside_button)
+
+    def restart_explorer(self):
+        batch_file = os.path.join(SETTINGS.working_dir, 'restart_explorer.bat')
+        with open(batch_file, 'w', encoding='utf-8') as f:
+            f.write(
+                "chcp 65001\n"
+                "echo 按任意键重启资源管理器~\n"
+                "pause\n"
+                "taskkill /f /im explorer.exe\n"
+                "timeout /t 1\n"
+                "start explorer.exe\n"
+                "pause\n"
+            )
+        os.startfile(batch_file)
+
+    def kill_python(self):
+        batch_file = os.path.join(SETTINGS.working_dir, 'kill_python.bat')
+        with open(batch_file, 'w', encoding='utf-8') as f:
+            f.write(
+                "chcp 65001\n"
+                "echo 按任意键结束所有Python进程~\n"
+                "pause\n"
+                "taskkill /f /im python.exe\n"
+                "taskkill /f /im pythonw.exe\n"
+                "pause\n"
+            )
+        os.startfile(batch_file)
+
 
 class HotkeyGuideWidget(WidgetBox):
     def __init__(self, parent:MainWindow=None):
