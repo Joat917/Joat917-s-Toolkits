@@ -1,5 +1,5 @@
 from basic_settings import *
-from main_widgets import MainWindow, WidgetBox, PlainText, PushButton
+from main_widgets import MainWindow, WidgetBox, PlainText, PushButton, has_lib
 from common_utilities import get_clipboard_file_paths
 
 def run(master:MainWindow, path:str, *, without_console=True, arguments=()):
@@ -34,26 +34,28 @@ class MusicalLiteWidget(WidgetBox):
             bg_color=QColor(250, 150, 100)
         )
         self.extract_audio_button = PushButton(
-            onclick=self.extract_audio, 
+            onclick=lambda:QTimer.singleShot(0, self.extract_audio),
             text="Extract Audio",
-            width=230,
+            width=220,
             bg_color=QColor(250, 150, 150)
         )
         self.audio_decompose_button = PushButton(
             onclick=self.audio_decompose, 
-            text = "Seperate Vocal/Drum/Base/Melody",
-            width=440, 
+            text = "Extract Vocals",
+            width=220, 
             bg_color=QColor(150, 250, 150)
         )
-        self.addLine(
-            self.player_button,
-            self.piano_button,
-            self.bpm_button,
-        ).addLine(
-            self.extract_audio_button
-        ).addLine(
-            self.audio_decompose_button
-        )
+        if has_lib("pygame", 'pydub', 'scipy'):
+            self.addLine(
+                self.player_button,
+                self.piano_button,
+                self.bpm_button,
+            ).addLine(
+                self.extract_audio_button, 
+                self.audio_decompose_button if has_lib('torch', 'torchaudio', 'torchcodec') else PlainText("Install Torch!")
+            )
+        else:
+            self.addLine(PlainText("Install Pygame, Pydub and Scipy!"))
 
     def run_player(self):
         fps = get_clipboard_file_paths()
@@ -69,6 +71,14 @@ class MusicalLiteWidget(WidgetBox):
     
     def extract_audio(self):
         from musical_lite.musicallitelib import Converter
+        fps = get_clipboard_file_paths()
+        for fp in fps:
+            if fp and fp.lower().endswith(('.mp4', '.avi', '.mkv', '.flv', '.mov')):
+                converter = Converter()
+                audio_path = os.path.splitext(fp)[0] + "_audio.mp3"
+                converter.video_to_mp3(fp, audio_path)
+                self.master.messages.put_nowait(f"Audio extracted to: {audio_path}")
+                return
         file_dialog = QFileDialog(directory=os.path.join(os.path.expanduser("~"), "Videos"))
         file_dialog.setFileMode(QFileDialog.ExistingFile)
         file_dialog.setNameFilter("Video Files (*.mp4 *.avi *.mkv *.flv *.mov)")

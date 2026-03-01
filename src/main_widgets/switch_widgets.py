@@ -134,7 +134,7 @@ class PushButton(QPushButton):
         if pressed_color is None:
             pressed_color = bg_color.darker(SETTINGS.pushbutton_presseddarker)
         self.pressed_color = pressed_color
-        self.bg_color.setAlpha(alpha)
+        self.bg_color.setAlpha(min(alpha, self.bg_color.alpha()))
         self.onclick = onclick
         self.border_radius = height//2
 

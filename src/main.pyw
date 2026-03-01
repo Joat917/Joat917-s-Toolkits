@@ -1,9 +1,19 @@
-from basic_settings import *
-from main_widgets import CheckStarted, MainWindow, WidgetBox, PlainText, SwitchButton, PushButton
-from common_utilities import StopWatchWidgetBox, DropRunner, KeyDisplayerWidget, ClickerWidget, ClipboardWidget
-from small_tools.small_tools_widgets import InlineCalculatorWidget, OtherToolsWidget, HotkeyGuideWidget, ChaoticPendulumWidget, KillersWidget
-from mini_games.mini_games_widgets import MiniGamesWidget
-from musical_lite.musical_widgets import MusicalLiteWidget
+try:
+    from basic_settings import *
+    from main_widgets import CheckStarted, MainWindow, WidgetBox, PlainText, SwitchButton, PushButton, has_lib
+    from common_utilities import StopWatchWidgetBox, DropRunner, KeyDisplayerWidget, ClickerWidget, ClipboardWidget
+    from small_tools.small_tools_widgets import InlineCalculatorWidget, OtherToolsWidget, HotkeyGuideWidget, ChaoticPendulumWidget, KillersWidget
+    from mini_games.mini_games_widgets import MiniGamesWidget
+    from musical_lite.musical_widgets import MusicalLiteWidget
+except Exception as e:
+    import traceback
+    with open("error_log.txt", "a+", encoding="utf-8") as f:
+        f.write(traceback.format_exc())
+        f.write("\n\n")
+    traceback.print_exc()
+    input("Press Enter to exit...")
+    import sys
+    sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 from basic_settings import *
-from main_widgets import MainWindow, WidgetBox, PlainText, PushButton
+from main_widgets import MainWindow, WidgetBox, PlainText, PushButton, has_lib
 
 def run_game(master:MainWindow, game_path:str, without_console=True, *args):
     if hasattr(master, 'droprunner'):
@@ -20,10 +20,22 @@ class MiniGamesWidget(WidgetBox):
             width=200,
             bg_color=QColor(150, 200, 100)
         )
+        self.spherical_minesweeper_button = PushButton(
+            onclick=lambda: run_game(self.master, 'msw_spherical.py'),
+            text="Spherical Minesweeper",
+            width=310,
+            bg_color=QColor(100, 200, 150)
+        )
         self.flightchess_button = PushButton(
             onclick=lambda: run_game(self.master, 'flightChess.py'),
             text="Flight Chess",
             width=180,
+            bg_color=QColor(100, 150, 250)
+        )
+        self.autoflightchess_button = PushButton(
+            onclick=lambda: run_game(self.master, 'flightchesslib.py'),
+            text="Flight Chess (Auto)", 
+            width=290,
             bg_color=QColor(100, 150, 250)
         )
         self.point24game_button = PushButton(
@@ -87,12 +99,17 @@ class MiniGamesWidget(WidgetBox):
             bg_color=QColor(200, 250, 100)
         )
 
-        (
+        if has_lib("pygame"):(
             self
             .addLine(self.minesweeper_button, self.flightchess_button)
             .addLine(self.point24game_button, self.point24solver_button)
             .addLine(self.numguess_button, self.numguess_solver_button)
             .addLine(self.rushhour_button, self.fireshow_button)
             .addLine(self.fstimer_button, self.fsviewer_button)
-            .addLine(self.thirdmaze_button, self.klotski_button)
+            .addLine(self.thirdmaze_button, self.klotski_button if has_lib("cv2") else None)
+            .addLine(self.spherical_minesweeper_button if has_lib("scipy", "networkx") else None)
+            .addLine(self.autoflightchess_button if has_lib("cv2") else None)
         )
+        else:
+            self.addLine(PlainText("Install Pygame to unlock mini games!"))
+        

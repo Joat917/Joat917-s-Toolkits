@@ -37,10 +37,14 @@ class WidgetBox(QWidget):
                 raise TypeError("widget must be a QWidget or QLayout")
         return self
         
-    def addLine(self, *widgets:QWidget):
+    def addLine(self, *widgets:QWidget|None):
         "在盒子内添加一行组件，组件水平排列。"
+        if all(w is None for w in widgets):
+            return self
         line_layout = QHBoxLayout()
         for widget in widgets:
+            if widget is None:
+                continue
             line_layout.addWidget(widget)
         self.main_layout.addLayout(line_layout)
         return _AddLineResult(self, widgets, [line_layout])
@@ -70,7 +74,9 @@ class _AddLineResult:
         self.elements.append(widget)
         return self
     
-    def addLine(self, *widgets):
+    def addLine(self, *widgets:QWidget|None):
+        if all(w is None for w in widgets):
+            return self
         new_result = self.box.addLine(*widgets)
         self.elements.extend(new_result.elements)
         self.lines.extend(new_result.lines)

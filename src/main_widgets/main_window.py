@@ -116,8 +116,10 @@ class MainWindow(QWidget):
         self._keyboard_moving_timer = None # 非鼠标导致窗口隐藏状态发生更改的动画
         self._keyboard_moving_countleft = 0 # 键盘隐藏动画剩余帧数
 
-    def add(self, *widgets:QWidget):
+    def add(self, *widgets:QWidget|None):
         for widget in widgets:
+            if widget is None:
+                continue
             self.content_layout.addWidget(widget)
             widget.show()
             self.widgets.append(widget)

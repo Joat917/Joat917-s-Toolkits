@@ -72,3 +72,11 @@ class CheckStarted:
                 os.remove(self.pid_file)
         except Exception:
             pass
+
+def has_lib(*lib_names:str):
+    """检查提到的库是否都已安装"""
+    from importlib.util import find_spec
+    for lib in lib_names:
+        if find_spec(lib) is None:
+            return False
+    return True

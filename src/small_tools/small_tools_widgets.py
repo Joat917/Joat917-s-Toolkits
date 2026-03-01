@@ -1,5 +1,5 @@
 from basic_settings import *
-from main_widgets import MainWindow, WidgetBox, PlainText, PushButton, SwitchButton
+from main_widgets import MainWindow, WidgetBox, PlainText, PushButton, SwitchButton, has_lib
 from common_utilities import get_clipboard_file_paths, get_clipboard_text, get_clipboard_image
 
 def run_tool(master:MainWindow, script_path:str, *args):
@@ -53,19 +53,32 @@ class OtherToolsWidget(WidgetBox):
             text="QRScan",
             width=140,
             bg_color=QColor(100, 200, 150)
+        ) if has_lib("cv2") else PushButton(
+            text="Need Cv2", 
+            width=160,
+            bg_color=QColor("transparent")
         )
-        self.scdach_calendar_button = PushButton(
-            onclick=self.run_scdach_calendar, 
-            text="Calendar", 
-            width=160, 
-            bg_color=QColor(150, 100, 250)
-        )
-        self.schedule_achievements_button = PushButton(
-            onclick=self.run_schedule_achievements, 
-            text="SchAchv", 
-            width=160, 
-            bg_color=QColor(200, 100, 200)
-        )
+        if has_lib("borax", "openpyxl"):
+            self.scdach_calendar_button = PushButton(
+                onclick=self.run_scdach_calendar, 
+                text="Calendar", 
+                width=160, 
+                bg_color=QColor(150, 100, 250)
+            )
+            self.schedule_achievements_button = PushButton(
+                onclick=self.run_schedule_achievements, 
+                text="SchAchv", 
+                width=160, 
+                bg_color=QColor(200, 100, 200)
+            )
+        else:
+            self.scdach_calendar_button = PushButton(
+                text="Need Borax and Openpyxl", 
+                width=410, 
+                bg_color=QColor("transparent")
+            )
+            self.schedule_achievements_button = None
+        
         self.quinifier_button = PushButton(
             onclick=self.run_quinifier, 
             text = "Quinify", 
@@ -78,17 +91,23 @@ class OtherToolsWidget(WidgetBox):
             width = 150, 
             bg_color= QColor(200, 150, 100)
         )
+
         self.minifier_button = PushButton(
             onclick=self.run_minifier, 
             text="Minify", 
             width=130, 
             bg_color=QColor(200, 150, 150)
-        )
+        ) if has_lib("python_minifier") else None
+
         self.script_generator_button = PushButton(
             onclick=lambda: run_tool(self.master, 'script_generator.py'), 
             text="ScriptGen", 
             width=180, 
             bg_color=QColor(100, 150, 200)
+        ) if has_lib("pyautogui") else PushButton(
+            text="Need PyAutoGUI", 
+            width=260, 
+            bg_color=QColor("transparent")
         )
 
         (
@@ -161,16 +180,25 @@ class ChaoticPendulumWidget(WidgetBox):
     def __init__(self, mainwindow:MainWindow):
         super().__init__(parent=mainwindow, title="Chaotic Pendulum")
         self.pendulum_display = None
-        self.toggle_button = SwitchButton(
-            onturnon = self.enable_display,
-            onturnoff = self.disable_display,
-        )
-        self.status_label = PlainText(
-            text="Disabled", 
-            parent=self,
-        )
-        self.addLine(self.toggle_button, self.status_label)
-        self.timer = QTimer(self)
+        if has_lib("scipy"):
+            self.toggle_button = SwitchButton(
+                onturnon = self.enable_display,
+                onturnoff = self.disable_display,
+            )
+            self.status_label = PlainText(
+                text="Disabled", 
+                parent=self,
+            )
+            self.addLine(self.toggle_button, self.status_label)
+            self.timer = QTimer(self)
+        else:
+            self.status_label = PlainText(
+                text="Install Scipy to enable this tool.", 
+                parent=self,
+            )
+            self.add(self.status_label)
+            self.toggle_button = None
+            self.timer = None
 
     def enable_display(self):
         self.status_label.setText("Enabled")

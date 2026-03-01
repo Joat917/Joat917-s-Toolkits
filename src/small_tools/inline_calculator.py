@@ -2,11 +2,9 @@
 import code
 import sys
 import os
-import base64
+import threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) # import patch
-
-from basic_settings import SETTINGS
 
 class InlineCalculator(code.InteractiveConsole):
     NAMEX = "namex" # 试图用UniTex渲染'namex'字符串时使用的结果
@@ -15,6 +13,8 @@ class InlineCalculator(code.InteractiveConsole):
         sys.ps1 = ">>> "
         sys.ps2 = "... "
         for command in [
+            'import os', 
+            'import sys', 
             'import math',
             'import cmath',
             'import random',
@@ -27,28 +27,41 @@ class InlineCalculator(code.InteractiveConsole):
             'import collections', 
             'import itertools',
             'import re', 
-            'import numpy as np', 
-            'import pandas as pd', 
-            'import sympy as sp', 
-            'import matplotlib.pyplot as plt', 
-            'from builtins import *', 
-            'original_pow = pow',
-            'from math import *', 
-            'from PIL import Image, ImageDraw, ImageFont',
-            'from unitex_jsrunner import convert as unitex', 
-            'from pyperclip import copy, paste', 
-            'import os', 
-            'import sys', 
             'import json', 
             'import base64', 
             'import hashlib',
-            'import prettytable',
-            'from prettytable import PrettyTable',
-            'os.system("title Inline Calculator") and None or None' if os.name == 'nt' else '',
-            f'os.chdir({os.path.abspath(os.path.expanduser("~"))!r})'
+            'original_pow = pow',
+            'from math import *', 
+            'from builtins import *', 
+
+            f'os.chdir({os.path.abspath(os.path.expanduser("~"))!r})', 
+
+            'from PIL import Image, ImageDraw, ImageFont',
+            'from pyperclip import copy, paste', 
+            'import prettytable' if self.has_lib("prettytable") else '',
+            'from prettytable import PrettyTable' if self.has_lib("prettytable") else '',
+
+            # 后台线程导入启动较慢的库，减少启动卡顿
+            'import threading',
+            'threading.Thread(target=lambda:exec("import numpy as np",globals()),daemon=True).start()' if self.has_lib("numpy") else '',
+            'threading.Thread(target=lambda:exec("import pandas as pd",globals()),daemon=True).start()' if self.has_lib("pandas") else '', 
+            'threading.Thread(target=lambda:exec("import sympy as sp",globals()),daemon=True).start()' if self.has_lib("sympy") else '', 
+            'threading.Thread(target=lambda:exec("import matplotlib.pyplot as plt",globals()),daemon=True).start()' if self.has_lib("matplotlib") else '',
+            'threading.Thread(target=lambda:exec("from unitex_jsrunner import convert as unitex",globals()),daemon=True).start()' if self.has_lib("execjs") else 'print("Warning: UniTex is not available because execjs is not installed.")',
+            'threading.Thread(target=lambda:exec("os.system(\\"title Inline Calculator\\")",globals()),daemon=True).start()',
         ]:
             self.push(command)
 
+        threading.Thread(target=self.set_namex, daemon=True).start()
+
+    def has_lib(self, libname):
+        import importlib.util
+        return importlib.util.find_spec(libname) is not None
+
+        
+    def set_namex(self):
+        from basic_settings import SETTINGS
+        import base64
         try:
             with open(SETTINGS.namexfilepath, 'r', encoding='utf-8') as f:
                 new_namex = base64.a85decode(f.read().strip().encode()).decode()
@@ -63,6 +76,7 @@ class InlineCalculator(code.InteractiveConsole):
             # import traceback
             # traceback.print_exc()
             pass
+
 
     def interact(self):
         print("Inline Calculator (like IDLE).")

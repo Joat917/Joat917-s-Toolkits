@@ -135,11 +135,18 @@ class ClipboardWidget(WidgetBox):
             width = int.from_bytes(bmpinfo[4:8], 'little')
             height = int.from_bytes(bmpinfo[8:12], 'little')
             bpp = int.from_bytes(bmpinfo[14:16], 'little')
-            if bpp != 32:
-                self.master.messages.put_nowait("Only 32bpp images are supported.")
+            if bpp == 32:
+                img_data = data[40:]
+                img = Image.frombuffer('RGBA', (width, height), img_data, 'raw', 'BGRA', 0, 1)
+            elif bpp == 24:
+                img_data = data[40:]
+                img = Image.frombuffer('RGB', (width, height), img_data, 'raw', 'BGR', 0, 1)
+            elif bpp == 8:
+                img_data = data[40:]
+                img = Image.frombuffer('L', (width, height), img_data, 'raw', 'L', 0, 1)
+            else:
+                self.master.messages.put_nowait(f"Only 8, 24 and 32 bpp images are supported, but got {bpp} bpp")
                 return
-            img_data = data[40:]
-            img = Image.frombuffer('RGBA', (width, height), img_data, 'raw', 'BGRA', 0, 1)
             save_path = get_image_path()
             if not save_path:
                 return
