@@ -34,7 +34,7 @@ class MusicalLiteWidget(WidgetBox):
             bg_color=QColor(250, 150, 100)
         )
         self.extract_audio_button = PushButton(
-            onclick=lambda:QTimer.singleShot(0, self.extract_audio),
+            onclick=lambda:QTimer.singleShot(0, self.extract_audio_nonblocking),
             text="Extract Audio",
             width=220,
             bg_color=QColor(250, 150, 150)
@@ -88,6 +88,10 @@ class MusicalLiteWidget(WidgetBox):
             audio_path = os.path.splitext(video_path)[0] + "_audio.mp3"
             converter.video_to_mp3(video_path, audio_path)
             self.master.messages.put_nowait(f"Audio extracted to: {audio_path}")
+
+    def extract_audio_nonblocking(self):
+        import threading
+        threading.Thread(target=self.extract_audio).start()
 
     def audio_decompose(self):
         fps = get_clipboard_file_paths()
