@@ -4,24 +4,26 @@ from .keyboard_listener import KeyboardListenerSignalPatched as KeyboardListener
 from .custom_menu import CustomMenu
 
 class MainWindow(QWidget):
-    # 大小和停靠位置参数
-    WIDTH = SETTINGS.window_width
-    HEIGHT = SETTINGS.window_height
-    PADDING = SETTINGS.window_padding
-    SHADOW_MARGIN = SETTINGS.shadow_margin
-    K=SETTINGS.window_animation_K # 回弹系数
-    R=SETTINGS.window_animation_R # 回弹半径
-    TOTAL_ANIMATION_FRAMES = SETTINGS.window_animation_frames
-    TOTAL_ANIMATION_TIME_MS = SETTINGS.window_animation_time_ms
     def __init__(self, app:QApplication):
         super().__init__()
         self.app=app
 
         # 停靠在屏幕右上角
         screen_geometry = QApplication.primaryScreen().geometry()
-        self.position_1 = QPoint(screen_geometry.width()-self.WIDTH-self.SHADOW_MARGIN, self.PADDING-self.SHADOW_MARGIN)
-        self.position_2 = QPoint(screen_geometry.width()-self.PADDING-self.SHADOW_MARGIN, self.PADDING-self.SHADOW_MARGIN)
-        self.setGeometry(self.position_1.x(), self.position_1.y(), self.WIDTH+2*self.SHADOW_MARGIN, self.HEIGHT+2*self.SHADOW_MARGIN)
+        self.position_1 = QPoint(
+            screen_geometry.width() -SETTINGS.window_width -SETTINGS.shadow_margin, # 不加 -SETTINGS.window_padding 故意让窗口右侧没有缝隙 
+            SETTINGS.window_padding -SETTINGS.shadow_margin
+        )
+        self.position_2 = QPoint(
+            screen_geometry.width() -SETTINGS.window_hidden_exposing_width-SETTINGS.shadow_margin, 
+            SETTINGS.window_padding -SETTINGS.shadow_margin
+        )
+        self.setGeometry(
+            self.position_1.x(), 
+            self.position_1.y(), 
+            SETTINGS.window_width+2*SETTINGS.shadow_margin, 
+            SETTINGS.window_height+2*SETTINGS.shadow_margin
+        )
 
         self.setAcceptDrops(True)
         self.setWindowTitle(SETTINGS.window_title)
@@ -31,24 +33,31 @@ class MainWindow(QWidget):
 
         # MainWindow -> shadow(_shadowed_window_layout)
         self.shadow = QGraphicsDropShadowEffect(self)
-        self.shadow.setBlurRadius(20)
+        self.shadow.setBlurRadius(SETTINGS.shadow_margin*4)
         self.shadow.setColor(QColor(0, 0, 0, 160))
         self.shadow.setOffset(0, 0)
         self.setGraphicsEffect(self.shadow)
 
         self._shadowed_window_layout = QVBoxLayout(self)
         self.setLayout(self._shadowed_window_layout)
-        self._shadowed_window_layout.setContentsMargins(self.SHADOW_MARGIN, self.SHADOW_MARGIN, self.SHADOW_MARGIN, self.SHADOW_MARGIN)
+        self._shadowed_window_layout.setContentsMargins(
+            SETTINGS.shadow_margin, SETTINGS.shadow_margin, 
+            SETTINGS.shadow_margin, SETTINGS.shadow_margin
+        )
 
         # shadow(_shadowed_window_layout) -> shadow_container(shadow_container_layout)
         self.shadow_container = QWidget(self)
         self._shadowed_window_layout.addWidget(self.shadow_container)
         self.shadow_container.setStyleSheet("background-color: transparent;")
-        self.shadow_container.setGeometry(0, 0, self.WIDTH, self.HEIGHT)
+        self.shadow_container.setGeometry(0, 0, SETTINGS.window_width, SETTINGS.window_height)
         self.shadow_container_layout = QVBoxLayout(self.shadow_container)
         self.shadow_container.installEventFilter(self)
 
-        self.bgwidget=BackgroundWidget(self.shadow_container, width=self.WIDTH, height=self.HEIGHT)
+        self.bgwidget=BackgroundWidget(
+            self.shadow_container, 
+            width=SETTINGS.window_width, 
+            height=SETTINGS.window_height
+        )
         self.trayWidget=TrayIconWidget(self)
 
         # shadow_container(shadow_container_layout) -> scroll
@@ -57,7 +66,7 @@ class MainWindow(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setGeometry(0, 0, self.WIDTH, self.HEIGHT)
+        scroll.setGeometry(0, 0, SETTINGS.window_width, SETTINGS.window_height)
         scroll.setStyleSheet("border: none;")
         scroll.verticalScrollBar().setContextMenuPolicy(Qt.NoContextMenu)
         
@@ -169,8 +178,7 @@ class MainWindow(QWidget):
             if mouse_pos.x()>desired_pos.x():
                 desired_pos=QPoint(mouse_pos.x(), desired_pos.y())
             delta = mouse_pos-desired_pos
-            beta = (delta.x()**2+delta.y()**2)**0.5/self.R
-            # beta_normalized = math.tanh(beta)/beta if not math.isclose(beta, 0) else 1
+            beta = (delta.x()**2+delta.y()**2)**0.5/SETTINGS.window_animation_R
             beta_normalized = math.log(1+beta)/beta if not math.isclose(beta, 0) else 1
             target_pos = desired_pos + (mouse_pos - desired_pos) * beta_normalized
             self.move(target_pos)
@@ -207,12 +215,15 @@ class MainWindow(QWidget):
             self._settle_hidden_position()
             return
         
-        # 以正弦函数轨迹移动
-        # next_delta_proportion = (1-math.cos(self._mouse_animation_countleft/self.TOTAL_ANIMATION_FRAMES*(math.pi / 2)))/(1-math.cos((self._mouse_animation_countleft+1)/self.TOTAL_ANIMATION_FRAMES*(math.pi / 2)))
-        # 以抛物线轨迹移动
-        # next_delta_proportion = (self._mouse_animation_countleft)**2/(self._mouse_animation_countleft+1)**2
-        # 以双曲函数轨迹移动
-        next_delta_proportion = (math.cosh(self.K*self._mouse_animation_countleft/self.TOTAL_ANIMATION_FRAMES)-1)/(math.cosh(self.K*(self._mouse_animation_countleft+1)/self.TOTAL_ANIMATION_FRAMES)-1)
+        next_delta_proportion = (
+            math.cosh(
+                SETTINGS.window_animation_K*self._mouse_animation_countleft/SETTINGS.window_animation_frames
+            )-1
+        )/(
+            math.cosh(
+                SETTINGS.window_animation_K*(self._mouse_animation_countleft+1)/SETTINGS.window_animation_frames
+            )-1
+        )
         new_pos = QPointF(target_pos.x() - delta.x() * next_delta_proportion,
                           target_pos.y() - delta.y() * next_delta_proportion).toPoint()
         self.move(new_pos)
@@ -221,13 +232,13 @@ class MainWindow(QWidget):
         self.drag_position = None
         if self.hidden:
             self.hidden = False
-        elif self.pos().x() > self.position_1.x() + self.WIDTH / 6:
+        elif self.pos().x() > self.position_1.x() + SETTINGS.window_width / 6:
             self.hidden = True
         self._stop_moving_animation()
         self._mouse_animation_timer = QTimer(self)
         self._mouse_animation_timer.timeout.connect(self._mouse_animation_step)
-        self._mouse_animation_countleft = self.TOTAL_ANIMATION_FRAMES
-        self._mouse_animation_timer.start(self.TOTAL_ANIMATION_TIME_MS//self.TOTAL_ANIMATION_FRAMES)
+        self._mouse_animation_countleft = SETTINGS.window_animation_frames
+        self._mouse_animation_timer.start(SETTINGS.window_animation_time_ms//SETTINGS.window_animation_frames)
         event.accept()
 
     def _settle_hidden_position(self):
@@ -235,8 +246,10 @@ class MainWindow(QWidget):
         self._stop_moving_animation()
         if self.hidden:
             self.move(self.position_2)
+            self.setCursor(Qt.PointingHandCursor)
         else:
             self.move(self.position_1)
+            self.setCursor(Qt.ArrowCursor)
 
     def _keyboard_moving_updater(self):
         if self.drag_position is not None:
@@ -254,9 +267,17 @@ class MainWindow(QWidget):
         target_pos = self.position_1 if not self.hidden else self.position_2
         delta = target_pos - current_pos
         distance = math.hypot(delta.x(), delta.y())
-        # next_delta_proportion = (1-math.cos(self._keyboard_moving_countleft/self.TOTAL_ANIMATION_FRAMES*(math.pi / 2)))/(1-math.cos((self._keyboard_moving_countleft+1)/self.TOTAL_ANIMATION_FRAMES*(math.pi / 2)))
-        # next_delta_proportion = (self._keyboard_moving_countleft)**2/(self._keyboard_moving_countleft+1)**2
-        next_delta_proportion = (math.cosh(self.K*self._keyboard_moving_countleft/self.TOTAL_ANIMATION_FRAMES)-1)/(math.cosh(self.K*(self._keyboard_moving_countleft+1)/self.TOTAL_ANIMATION_FRAMES)-1)
+        next_delta_proportion = (
+            math.cosh(
+                SETTINGS.window_animation_K
+                *self._keyboard_moving_countleft
+                /SETTINGS.window_animation_frames
+            )-1
+        )/(math.cosh(
+            SETTINGS.window_animation_K
+            *(self._keyboard_moving_countleft+1)
+            /SETTINGS.window_animation_frames
+        )-1)
         new_pos = QPointF(target_pos.x() - delta.x() * next_delta_proportion,
                           target_pos.y() - delta.y() * next_delta_proportion).toPoint()
         
@@ -274,8 +295,8 @@ class MainWindow(QWidget):
         self._stop_moving_animation()
         self._keyboard_moving_timer = QTimer(self)
         self._keyboard_moving_timer.timeout.connect(self._keyboard_moving_updater)
-        self._keyboard_moving_countleft = self.TOTAL_ANIMATION_FRAMES
-        self._keyboard_moving_timer.start(self.TOTAL_ANIMATION_TIME_MS//self.TOTAL_ANIMATION_FRAMES)
+        self._keyboard_moving_countleft = SETTINGS.window_animation_frames
+        self._keyboard_moving_timer.start(SETTINGS.window_animation_time_ms//SETTINGS.window_animation_frames)
 
     def activateCallback(self):
         self.refreshHiddenState(False)
