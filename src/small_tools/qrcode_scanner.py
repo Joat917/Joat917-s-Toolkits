@@ -38,6 +38,7 @@ if __name__ == "__main__":
             print("QR Code Data:", result)
         else:
             print("No QR code found.")
+        input("Press Enter to exit...")
     else:
         while True:
             image_path = input("Enter the path to the image file (or 'exit' to quit): ")

@@ -24,15 +24,15 @@ if __name__ == "__main__":
             InlineCalculatorWidget(parent=window), 
             window.clipboard_widget,
             window.droprunner,
-            KeyDisplayerWidget(master=window),
-            StopWatchWidgetBox(master=window),
-            ClickerWidget(window),
-            ChaoticPendulumWidget(mainwindow=window),
             KillersWidget(window),
             OtherToolsWidget(parent=window),
             MusicalLiteWidget(parent=window),
             MiniGamesWidget(parent=window),
-            HotkeyGuideWidget(parent=window)
+            KeyDisplayerWidget(master=window),
+            StopWatchWidgetBox(master=window),
+            ClickerWidget(window),
+            ChaoticPendulumWidget(mainwindow=window),
+            HotkeyGuideWidget(parent=window), 
         )
         window.show()
         try:
