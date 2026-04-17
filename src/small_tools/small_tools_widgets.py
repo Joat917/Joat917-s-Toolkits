@@ -202,8 +202,12 @@ class ChaoticPendulumWidget(WidgetBox):
 
     def enable_display(self):
         self.status_label.setText("Enabled")
+        try:
+            self.timer.timeout.disconnect()
+        except TypeError:
+            pass
         self.timer.timeout.connect(self.check_pendulum)
-        self.timer.start(1000)
+        self.timer.singleShot(3000, lambda:self.timer.start(1000))
         if not self.pendulum_started():
             return run_script(self.master, 'small_tools/chaotic_pendulum.py')
     
@@ -236,6 +240,74 @@ class ChaoticPendulumWidget(WidgetBox):
             pass
         self.timer.stop()
         self.timer.timeout.disconnect(self.check_pendulum)
+        self.status_label.setText("Disabled")
+        # 故意留下pid文件
+        return
+    
+class WindowMoverWidget(WidgetBox):
+    def __init__(self, mainwindow:MainWindow):
+        super().__init__(parent=mainwindow, title="Window Mover")
+        self.pendulum_display = None
+        if has_lib("win32gui") and has_lib("win32con") and has_lib("pywintypes"):
+            self.toggle_button = SwitchButton(
+                onturnon = self.enable_display,
+                onturnoff = self.disable_display,
+            )
+            self.status_label = PlainText(
+                text="Disabled", 
+                parent=self,
+            )
+            self.addLine(self.toggle_button, self.status_label)
+            self.timer = QTimer(self)
+        else:
+            self.status_label = PlainText(
+                text="Install PyWin32 to enable this tool.", 
+                parent=self,
+            )
+            self.add(self.status_label)
+            self.toggle_button = None
+            self.timer = None
+
+    def enable_display(self):
+        self.status_label.setText("Enabled\nPress F15 - force move")
+        try:
+            self.timer.timeout.disconnect()
+        except TypeError:
+            pass
+        self.timer.timeout.connect(self.check_mover)
+        self.timer.singleShot(3000, lambda:self.timer.start(1000))
+        if not self.mover_started():
+            return run_script(self.master, 'small_tools/show_window_info.py', '--lock-file', os.path.join(SETTINGS.working_dir, 'window_mover.pid'))
+    
+    def mover_started(self):
+        lock_file = os.path.join(SETTINGS.working_dir, 'window_mover.pid')
+        if not os.path.exists(lock_file):
+            return False
+        try:
+            with open(lock_file, 'r') as f:
+                pid = int(f.read().strip())
+            return psutil.pid_exists(pid)
+        except Exception:
+            return False
+    
+    def check_mover(self):
+        if not self.mover_started():
+            if self.toggle_button.state:
+                self.toggle_button.mousePressEvent(None)
+    
+    def disable_display(self):
+        lock_file = os.path.join(SETTINGS.working_dir, 'window_mover.pid')
+        if not os.path.exists(lock_file):
+            return
+        try:
+            with open(lock_file, 'r') as f:
+                pid = int(f.read().strip())
+            if psutil.pid_exists(pid):
+                os.kill(pid, 9)
+        except Exception:
+            pass
+        self.timer.stop()
+        self.timer.timeout.disconnect(self.check_mover)
         self.status_label.setText("Disabled")
         # 故意留下pid文件
         return
