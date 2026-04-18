@@ -1,5 +1,12 @@
 """
 独立脚本：展示鼠标指针位置窗口的所有信息
+
+功能说明：
+1. 显示鼠标指针所在窗口的句柄、标题、类名、位置和大小等信息，并用绿色边框框出该窗口。
+2. 按下F15进入移动模式，鼠标静止超过0.5秒后显示黑色半透明可拖动窗口，强制拖动目标窗口的位置。再次按下F15或者按下ESC退出移动模式。
+3. 按下F8退出程序。
+4. 当因为权限不足等原因导致目标窗口无法被移动时，在鼠标位置生成一些火花动画。
+5. 忽略自身窗口的信息。
 """
 
 import win32gui, win32api, win32con, ctypes
@@ -9,6 +16,7 @@ import math
 import random
 from PyQt5 import QtWidgets, QtCore, QtGui
 
+TITLE_MAX_LENGTH = 50
 
 def repeat_when_fail(func, retries=5):
     def wrapper(*args, **kwargs):
@@ -26,13 +34,10 @@ def get_window_info_at_cursor():
     out['cursor_position'] = cursor_pos = win32api.GetCursorPos()
     out['handle'] = hwnd = win32gui.WindowFromPoint(cursor_pos)
 
-    # hdc = ctypes.windll.user32.GetDC(0)
-    # out['dpi'] = dpi = ctypes.windll.gdi32.GetDeviceCaps(hdc, 88)  # LOGPIXELSX=88
-    # ctypes.windll.user32.ReleaseDC(0, hdc)
-
     if not hwnd:
         return out
     out['title'] = win32gui.GetWindowText(hwnd)
+    out['title_short'] = out['title'][:TITLE_MAX_LENGTH-3] + "..." if len(out['title']) > TITLE_MAX_LENGTH else out['title']
     out['class_name'] = win32gui.GetClassName(hwnd)
     rect = win32gui.GetWindowRect(hwnd)
     out['position'] = (rect[0], rect[1])
@@ -46,6 +51,7 @@ def get_window_info_by_handle(hwnd):
         return out
     try:
         out['title'] = win32gui.GetWindowText(hwnd)
+        out['title_short'] = out['title'][:TITLE_MAX_LENGTH-3] + "..." if len(out['title']) > TITLE_MAX_LENGTH else out['title']
         out['class_name'] = win32gui.GetClassName(hwnd)
         rect = win32gui.GetWindowRect(hwnd)
         out['position'] = (rect[0], rect[1])
@@ -112,7 +118,7 @@ class InfoWindow(QtWidgets.QWidget):
 
         self.label = QtWidgets.QLabel(self)
         self.label.setStyleSheet("color: white; background-color: transparent; border: none;")
-        self.label.setText(f"Handle: {window_info['handle']}\nTitle: {window_info['title']}\nClass: {window_info['class_name']}")
+        self.label.setText(f"Handle: {window_info['handle']}\nTitle: {window_info['title_short']}\nClass: {window_info['class_name']}")
         self.label.move(10, 10)
         self.label.adjustSize()
 
@@ -126,7 +132,7 @@ class InfoWindow(QtWidgets.QWidget):
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_info)
-        self.timer.start(100)
+        self.timer.start(50)
 
         self._old_info_tuple = None
         self._last_valid_hwnd = None
@@ -134,38 +140,51 @@ class InfoWindow(QtWidgets.QWidget):
         self._toggle_keydown = False
         self._mover = None
         self._force_update = False
+        
+        self._last_cursor_pos = None
+        self._last_moving_time = 0
 
         self.show()
 
     def update_info(self):
+        # get window info at cursor position
         new_info = get_window_info_at_cursor()
+        # refresh only when window changes
         new_info_tuple = (new_info['handle'], new_info['position'], new_info['size'], new_info['title'], new_info['class_name'])
         if new_info_tuple != self._old_info_tuple or self._force_update:
-            self._old_info_tuple = new_info_tuple
-            if new_info['handle'] == 0:
+            # ignore self window
+            if new_info['handle'] == int(self.winId()):
+                new_info.update(get_window_info_by_handle(self._last_valid_hwnd))
+                new_info_tuple = (new_info['handle'], new_info['position'], new_info['size'], new_info['title'], new_info['class_name'])
+            # don't change handle when moving
+            if self._mover is not None and self._mover.is_moving:
+                if win32gui.IsWindow(self._mover.hwnd):
+                    new_info.update(get_window_info_by_handle(self._mover.hwnd))
+                    new_info_tuple = (new_info['handle'], new_info['position'], new_info['size'], new_info['title'], new_info['class_name'])
+                else:
+                    self._last_valid_hwnd = new_info['handle']
+                    self._mover.hwnd = None
+                    self._mover.stop_move()
+            # ignore desktop
+            if new_info['handle'] == 0 and not self._mover.is_moving:
                 self.hide()
                 self.mouse_following_label.set_text("No window")
-            elif new_info['handle'] == int(self.winId()):
-                self.mouse_following_label.set_text("This window")
-                new_info_by_handle = get_window_info_by_handle(self._last_valid_hwnd)
-                if 'position' in new_info_by_handle and 'size' in new_info_by_handle:
-                    self.setGeometry(new_info_by_handle['position'][0], new_info_by_handle['position'][1], new_info_by_handle['size'][0], new_info_by_handle['size'][1])
-                    self.background_label.setGeometry(0, 0, self.width(), self.height())
-                    self.show()
-            else:
-                self._last_valid_hwnd = new_info['handle']
+            
+            self._last_valid_hwnd = new_info['handle']
+            if new_info_tuple != self._old_info_tuple or self._force_update:
+                self._old_info_tuple = new_info_tuple
+                # update window info
                 self.setGeometry(new_info['position'][0], new_info['position'][1], new_info['size'][0], new_info['size'][1])
                 self.background_label.setGeometry(0, 0, self.width(), self.height())
-                self.label.setText(f"Handle: {new_info['handle']}\nTitle: {new_info['title']}\nClass: {new_info['class_name']}")
+                self.label.setText(f"Handle: {new_info['handle']}\nTitle: {new_info['title_short']}\nClass: {new_info['class_name']}")
                 self.label.adjustSize()
                 self.mouse_following_label.set_text(self.label.text())
                 self.show()
                 self._force_update = False
         if win32api.GetAsyncKeyState(win32con.VK_ESCAPE) < 0:
             print("ESC key pressed.")
-            self.mouse_following_label.close()
-            self.close()
-            app.quit()
+            if self.moving_enabled:
+                self.moving_enabled = False
         if win32api.GetAsyncKeyState(win32con.VK_F8) < 0:
             print("F8 key pressed.")
             self.mouse_following_label.close()
@@ -182,6 +201,7 @@ class InfoWindow(QtWidgets.QWidget):
 
         if self.moving_enabled:
             if win32api.GetAsyncKeyState(win32con.VK_LBUTTON) < 0:
+                self._last_clicked_time = time.perf_counter()
                 if self._mover.is_moving:
                     self._mover.move()
                     self._force_update = True
@@ -190,11 +210,21 @@ class InfoWindow(QtWidgets.QWidget):
                     self._mover.start_move()
                     self.activateWindow()
             else:
-                stop_move = self._mover.is_moving
                 self._mover.stop_move()
-                if stop_move:
-                    self.moving_enabled = False
-            
+                pass
+        
+        if self.moving_enabled:
+            _time_since_moving = time.perf_counter() - self._last_moving_time
+            # print(_time_since_moving, end="\r")
+            if _time_since_moving > 0.5:
+                self.background_label.setStyleSheet("background-color: rgba(0,0,0,128); border: 4px solid red;")
+                self.activateWindow()
+            elif not self._mover.is_moving:
+                self.background_label.setStyleSheet("background-color: transparent; border: 4px solid red;")
+        new_cursor_pos = new_info['cursor_position']
+        if new_cursor_pos != self._last_cursor_pos:
+            self._last_moving_time = time.perf_counter()
+            self._last_cursor_pos = new_cursor_pos
 
     @property
     def moving_enabled(self):
@@ -370,6 +400,12 @@ if __name__ == "__main__":
                     print("Another instance is already running. Exiting.")
                     sys.exit(0)
                 break
+        for arg in sys.argv:
+            if arg == '--verbose':
+                print("Verbose mode enabled.")
+                break
+        else:
+            sys.stdout = open(os.devnull, 'w')
     app = QtWidgets.QApplication(sys.argv)
     info_window = InfoWindow()
     sys.exit(app.exec_())
