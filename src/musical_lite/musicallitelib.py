@@ -3,6 +3,23 @@ import sys
 import time
 import subprocess
 import numpy as np
+import threading
+
+def rfft(data):
+    return np.fft.rfft(data)
+
+def use_torch_fft_if_available():
+    global rfft
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.init()
+            def rfft(data):
+                return torch.fft.rfft(torch.tensor(data).cuda()).cpu().numpy()
+    except ImportError:
+        pass
+threading.Thread(target=use_torch_fft_if_available).start()
+del use_torch_fft_if_available
 
 
 class Converter:
@@ -344,7 +361,7 @@ class BPMDetectors:
         for t in time_sequence:
             value_data += np.exp(-0.5 * ((time_data - t) / kernel_width)**2)  # Gaussian kernel
         freqs = np.fft.rfftfreq(len(time_data), d=(time_data[1]-time_data[0]))
-        spectrum = np.abs(np.fft.rfft(value_data))
+        spectrum = np.abs(rfft(value_data))
         spectrum[0] = 0  # 去除直流分量
         peak_freq = freqs[np.argmax(spectrum)]
         return peak_freq * 60  # Convert to BPM
