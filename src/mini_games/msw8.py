@@ -106,7 +106,7 @@ class MinefieldWrapped:
     def dig(self, col: int, row: int):
         if MF_DEBUG:
             print(f"Dig: %i,%i" % (col, row))
-        ret_val = self.minefield.dig((row-1, col-1))
+        ret_val = m.run_dense_task(lambda:self.minefield.dig((row-1, col-1)))
         if MF_DEBUG:
             print(self.minefield)
         return ret_val
@@ -150,7 +150,8 @@ class MinefieldWrapped:
 
     def get_suggestion(self):
         if self.advisor._needs_recalculation():
-            self.advisor.analyze()
+            # self.advisor.analyze()
+            m.run_dense_task(self.advisor.analyze)
             for pos in self.minefield.all_places():
                 row,col=pos
                 if self.minefield.is_exposed(pos) or self.minefield.is_flag(pos):
@@ -766,11 +767,11 @@ class Game(BaseObject):
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_ESCAPE:
                 raise GameExit("Quit Game")
-            elif event.key in [pg.K_RETURN, pg.K_SPACE]+list(range(48, 58))+list(range(97, 123)):
-                if not self._conducted:
-                    self._conducted = True
-                    self.minefield.conduct_suggestion()
-                    self.main._refresh = True
+        if any(pg.key.get_pressed()[key_code] for key_code in [pg.K_RETURN, pg.K_SPACE]+list(range(48, 58))+list(range(97, 123))):
+            if not self._conducted:
+                self._conducted = True
+                self.minefield.conduct_suggestion()
+                self.main._refresh = True
 
     def tick(self):
         self._conducted = False
@@ -984,98 +985,61 @@ class MainMenu(BaseObject):
         self.clock = pg.time.Clock()
         self._refresh = True
 
-    def start_game_L(self):
-        if PROGRESS_DEBUG:
-            print("GameL-1")
-        g = Game(self, 9, 9, 10)
-        if PROGRESS_DEBUG:
-            print("GameL-2")
+    def run_dense_task(self, func):
+        import threading
+        completed = False
+        result = None
+        def _func():
+            nonlocal completed, result
+            self._refresh = True
+            result = func()
+            self._refresh = True
+            completed = True
+        threading.Thread(target=_func).start()
+
+        loading_im =Im.new('RGBA', (200, 80), (255, 255, 255, 100))
+        Imd.Draw(loading_im).text((0, 0), "计算中...", (0, 0, 0), FONT_TEXT)
+        root.blit(im2pg(loading_im), ((SCREEN_SIZE[0]-200)//2, (SCREEN_SIZE[1]-80)//2))
+        pg.display.flip()
+
+        while not completed:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                    raise SystemExit
+            self.clock.tick(FPS)
+
+        return result
+
+    def start_game(self, cols, rows, mines):
+        g = Game(self, cols, rows, mines)
         self._refresh = True
         try:
-            if PROGRESS_DEBUG:
-                print("GameL-3")
             while True:
                 for event in pg.event.get():
                     if g.handleEvent(event):
                         self._refresh = True
                 g.tick()
+
                 if self._refresh:
                     g.refresh()
                     self._refresh = False
-                g.show()
-                pg.display.flip()
+                    g.show()
+                    pg.display.flip()
                 self.clock.tick(FPS)
         except GameExit:
-            if PROGRESS_DEBUG:
-                print("GameL-8")
             pass
         except Exception as e:
-            if PROGRESS_DEBUG:
-                print("GameL-9")
-            # Error_Notice(f"{str(type(e))[8:-2]}: {e}").mainloop()
             Error_Notice(format_exc()).mainloop()
+
+    def start_game_L(self):
+        return self.start_game(9, 9, 10)
 
     def start_game_M(self):
-        if PROGRESS_DEBUG:
-            print("GameM-1")
-        g = Game(self, 16, 16, 40)
-        if PROGRESS_DEBUG:
-            print("GameM-2")
-        self._refresh = True
-        try:
-            if PROGRESS_DEBUG:
-                print("GameM-3")
-            while True:
-                for event in pg.event.get():
-                    if g.handleEvent(event):
-                        self._refresh = True
-                g.tick()
-                if self._refresh:
-                    g.refresh()
-                    self._refresh = False
-                g.show()
-                pg.display.flip()
-                self.clock.tick(FPS)
-        except GameExit:
-            if PROGRESS_DEBUG:
-                print("GameM-8")
-            pass
-        except Exception as e:
-            if PROGRESS_DEBUG:
-                print("GameM-9")
-            # Error_Notice(f"{str(type(e))[8:-2]}: {e}").mainloop()
-            Error_Notice(format_exc()).mainloop()
+        return self.start_game(16, 16, 40)
 
     def start_game_H(self):
-        if PROGRESS_DEBUG:
-            print("GameH-1")
-        g = Game(self, 30, 16, 99)
-        if PROGRESS_DEBUG:
-            print("GameH-2")
-        self._refresh = True
-        try:
-            if PROGRESS_DEBUG:
-                print("GameH-3")
-            while True:
-                for event in pg.event.get():
-                    if g.handleEvent(event):
-                        self._refresh = True
-                g.tick()
-                if self._refresh:
-                    g.refresh()
-                    self._refresh = False
-                g.show()
-                pg.display.flip()
-                self.clock.tick(FPS)
-        except GameExit:
-            if PROGRESS_DEBUG:
-                print("GameH-8")
-            pass
-        except Exception as e:
-            if PROGRESS_DEBUG:
-                print("GameH-9")
-            # Error_Notice(f"{str(type(e))[8:-2]}: {e}").mainloop()
-            Error_Notice(format_exc()).mainloop()
+        return self.start_game(30, 16, 99)
 
     def mainloop(self):
         while True:
