@@ -181,7 +181,7 @@ class MineField:
         return out
     
 class MineFieldAdvisor:
-    def __init__(self, minefield:MineField, seed=None):
+    def __init__(self, minefield:MineField, seed=None, dense_analysis=True):
         self.minefield = minefield
         self.rng = np.random.Generator(np.random.PCG64(seed=seed))
         self.old_field_cover = np.copy(minefield._cover)
@@ -190,6 +190,7 @@ class MineFieldAdvisor:
         self.probabilities_max = self.probability_suggestions.copy()
         self.probabilities_min = self.probability_suggestions.copy()
         self.conflicting_positions = []
+        self.dense_analysis = dense_analysis
         pass
 
     def _needs_recalculation(self):
@@ -289,8 +290,9 @@ class MineFieldAdvisor:
             # 求解该线性不定方程组，得到多个线性无关的解
             equations = np.array(equations, dtype=np.int32)
             solver = ZeroOneSolver(equations[:,:-1], equations[:,-1])
-            all_solutions = np.array(list(solver.get_solutions(timeout=0.2))).astype(np.float64)
-            if not solver.timeout_flag and all_solutions.shape and all_solutions.shape[0] > 0:
+            if self.dense_analysis:
+                all_solutions = np.array(list(solver.get_solutions(timeout=0.2))).astype(np.float64)
+            if self.dense_analysis and not solver.timeout_flag and all_solutions.shape and all_solutions.shape[0] > 0:
                 # print(f"在总共{len(positions_to_index)}个变量的空间中，存在{len(equations)}个线性约束条件，满足这些约束条件的解共有{len(all_solutions)}个")
                 for pos, index in positions_to_index.items():
                     self.probability_suggestions[pos] = np.mean(all_solutions[:, index])
@@ -342,7 +344,7 @@ class MineFieldNoLosing(MineField):
             print(info)
 
         # 先进行确定性分析
-        advisor = MineFieldAdvisor(minefield_copy)
+        advisor = MineFieldAdvisor(minefield_copy, dense_analysis=False)
         advisor.analyze()
         if advisor.conflicting_positions:
             log(f"确定性分析：当前雷区布局存在以下状态冲突：{advisor.conflicting_positions}")
@@ -544,7 +546,7 @@ class MineFieldNoLosing(MineField):
             log("强行尝试：约束条件之间存在矛盾，无解")
             return False  # 无法重新生成一个合法的雷区布局
         
-        solver = ZeroOneSolver(A, b, verbose=verbose)
+        solver = ZeroOneSolver(A, b, verbose=verbose, guess=np.round([advisor.probability_suggestions[pos] for pos in touched_positions]))
         for assignment in solver.get_solutions():
             if not mines_to_distribute_range[0] <= sum(assignment) <= mines_to_distribute_range[1]:
                 continue
@@ -601,9 +603,13 @@ class MineFieldNoLosing(MineField):
 
 class ZeroOneSolver:
     "求解线性方程组Ax=b，其中A和x均只包含0和1，且A为稀疏矩阵"
-    def __init__(self, A, b, verbose=False, show_pbar=False):
+    def __init__(self, A, b, verbose=False, show_pbar=False, guess=None):
         self.A = np.array(A)
         self.b = np.array(b)
+        if guess is None:
+            self.guess = np.zeros(self.A.shape[1], dtype=np.int32)
+        else:
+            self.guess = np.array(guess, dtype=np.int32)
         self.verbose = verbose
         self.show_pbar = show_pbar
 
@@ -627,8 +633,8 @@ class ZeroOneSolver:
             if var_index not in {x[0] for x in self.vars_to_try} and self.current_x[var_index] == -1:
                 if self.verbose:
                     print(f"尝试新变量：{var_index}")
-                self.vars_to_try.append((var_index, 0))
-                self.vars_to_try.append((var_index, 1))
+                self.vars_to_try.append((var_index, 1-self.guess[var_index]))
+                self.vars_to_try.append((var_index, self.guess[var_index])) # 先尝试猜测值，如果不成功再尝试相反的值
                 return True
         return False
             
@@ -657,7 +663,9 @@ class ZeroOneSolver:
         var_index, trying_value = self.vars_to_try.pop()
         self.current_x[var_index] = trying_value
         self.current_x_assignments.append(var_index)
+        return self._apply_constraints()
         
+    def _apply_constraints(self):
         # 搜索并应用约束
         changed = True
         while changed:
@@ -724,6 +732,7 @@ class ZeroOneSolver:
 
         start_time = time.process_time()
         self.timeout_flag = False
+        self._apply_constraints()
         self._try_new_var()
 
         while True:

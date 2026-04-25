@@ -49,6 +49,19 @@ class InlineCalculator(code.InteractiveConsole):
             'threading.Thread(target=lambda:exec("import matplotlib.pyplot as plt",globals()),daemon=True).start()' if self.has_lib("matplotlib") else '',
             'threading.Thread(target=lambda:exec("from unitex_jsrunner import convert as unitex",globals()),daemon=True).start()' if self.has_lib("execjs") else 'print("Warning: UniTex is not available because execjs is not installed.")',
             'threading.Thread(target=lambda:exec("os.system(\\"title Inline Calculator\\")",globals()),daemon=True).start()',
+            'threading.Thread(target=lambda:exec("from why import whyRunner as why",globals()),daemon=True).start()',
+
+            ('sci='
+             'lambda:exec("'
+             'import scipy\\n'
+             'from scipy.constants import *\\n'
+             'from scipy.stats import linregress, norm, chi2\\n'
+             'from scipy.optimize import minimize, curve_fit\\n'
+             'from scipy.interpolate import interp1d, CubicSpline\\n'
+             'from scipy.integrate import quad, solve_ivp, RK45, BDF, odeint\\n'
+             'del sci'
+             '",globals())'
+             '') if self.has_lib("scipy") else '',
         ]:
             self.push(command)
 
@@ -57,7 +70,6 @@ class InlineCalculator(code.InteractiveConsole):
     def has_lib(self, libname):
         import importlib.util
         return importlib.util.find_spec(libname) is not None
-
         
     def set_namex(self):
         from basic_settings import SETTINGS
@@ -121,7 +133,10 @@ class InlineCalculator(code.InteractiveConsole):
                             else:
                                 print(''.join(random.choice('???¿')*random.randint(10,60) for _ in expr))
                         else:
-                            self.push(f"help({repr(expr)})")
+                            if expr in self.locals:
+                                self.push(f"help({expr})")
+                            else:
+                                self.push(f"help({repr(expr)})")
                     continue
                 more = self.push(line)
                 if not _scipy_imported and 'scipy' in sys.modules:

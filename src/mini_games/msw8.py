@@ -10,12 +10,12 @@ from mswlib import MineFieldNoLosing, MineFieldAdvisor
 
 SCREEN_WIDTH = 960
 SCREEN_HEIGHT = 540
-FPS = 20
+FPS = 60
 SCREEN_SIZE = (SCREEN_WIDTH, SCREEN_WIDTH)
 
 MF_DEBUG = False
-PROGRESS_DEBUG = False
-RECHECK_DEBUG = False
+RECHECK_CHEAT = True # 如果打开此选项，自动建议将通过作弊的方式检查是否正确。因为打开此选项后不会误触雷区，所以可以极大提高爽感。
+DENSE_ANALYSIS = False # 如果打开此选项，将试图完整求解所有解以评估每个格子的概率。会略微降低性能，关闭以提高爽感。
 
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 NUMBERS = "123456789abcdefghijklmnopqrstuvwxyz"
@@ -100,13 +100,13 @@ class MinefieldWrapped:
         self.cols = cols
         self.mines = mines
         self.minefield = MineFieldNoLosing(rows=rows, cols=cols, mines=mines, first_click_pos=(first_click[1]-1, first_click[0]-1) if (first_click is not None) else None)
-        self.advisor = MineFieldAdvisor(self.minefield)
+        self.advisor = MineFieldAdvisor(self.minefield, dense_analysis=DENSE_ANALYSIS)
         self._buffer_suggestion = [[mines/(rows*cols) for _ in range(self.cols+2)] for _ in range(self.rows+2)]
 
     def dig(self, col: int, row: int):
         if MF_DEBUG:
             print(f"Dig: %i,%i" % (col, row))
-        ret_val = m.run_dense_task(lambda:self.minefield.dig((row-1, col-1)))
+        ret_val = m.run_dense_task(lambda:self.minefield.dig((row-1, col-1)), text=f"挖开({col},{row})...")
         if MF_DEBUG:
             print(self.minefield)
         return ret_val
@@ -115,7 +115,7 @@ class MinefieldWrapped:
         """挖开一圈"""
         if MF_DEBUG:
             print(f"Sweep: %i,%i" % (col, row))
-        ret_val = self.minefield.digaround((row-1, col-1))
+        ret_val = m.run_dense_task(lambda:self.minefield.digaround((row-1, col-1)), f"挖开({col},{row})周围...")
         if MF_DEBUG:
             print(self.minefield)
         return ret_val
@@ -139,7 +139,7 @@ class MinefieldWrapped:
                 continue
             if self.minefield.is_flag(pos):
                 self.minefield.flag(pos)
-            self.minefield.dig(pos)
+            m.run_dense_task(lambda:self.minefield.dig(pos), text=f"挖开({pos[1]+1},{pos[0]+1})...")
         return
 
     def safety(self):
@@ -151,7 +151,7 @@ class MinefieldWrapped:
     def get_suggestion(self):
         if self.advisor._needs_recalculation():
             # self.advisor.analyze()
-            m.run_dense_task(self.advisor.analyze)
+            m.run_dense_task(self.advisor.analyze, text="分析中...")
             for pos in self.minefield.all_places():
                 row,col=pos
                 if self.minefield.is_exposed(pos) or self.minefield.is_flag(pos):
@@ -176,32 +176,73 @@ class MinefieldWrapped:
             if self.advisor.confident_suggestions[pos]==2:
                 changed |= self.minefield.flag(pos)
             elif self.advisor.confident_suggestions[pos]==1:
-                changed |= self.minefield.dig(pos)
+                changed |= m.run_dense_task(lambda:self.minefield.dig(pos), text=f"挖开({pos[1]+1},{pos[0]+1})...")
         if changed:
             return
-        if (self.advisor.probabilities_max>=0).any():
-            min_of_max_probabilities = self.advisor.probabilities_max[self.advisor.probabilities_max>=0].min()
-            if min_of_max_probabilities <= 0.05:
-                for pos in self.minefield.all_places():
-                    if self.advisor.probability_suggestions[pos] != -1 and self.advisor.probabilities_min[pos]==min_of_max_probabilities:
-                        if RECHECK_DEBUG and self.minefield.is_mine(pos):
-                            Error_Notice(f"想要挖去({pos[1]+1},{pos[0]+1})，但是发现这个地方有雷。", "警告").mainloop()
-                            return
-                        changed |= self.minefield.dig(pos)
-                        if changed:
-                            return
-        if (self.advisor.probabilities_min>=0).any():
-            max_of_min_probabilities = self.advisor.probabilities_min[self.advisor.probabilities_min>=0].max()
-            if max_of_min_probabilities >= 0.95:
-                for pos in self.minefield.all_places():
-                    if self.advisor.probability_suggestions[pos] != -1 and self.advisor.probabilities_max[pos]==max_of_min_probabilities:
-                        if RECHECK_DEBUG and not self.minefield.is_mine(pos):
-                            Error_Notice(f"想要插旗({pos[1]+1},{pos[0]+1})，但是发现这个地方没有雷。", "警告").mainloop()
-                            return
-                        changed |= self.minefield.flag(pos)
-                        if changed:
-                            return
-
+        
+        import numpy as np
+        # for action_threshold in np.arange(0.01, 1+1e-7, 0.01):
+        #     if (self.advisor.probabilities_max>=0).any():
+        #         min_of_max_probabilities = self.advisor.probabilities_max[self.advisor.probabilities_max>=0].min()
+        #         if min_of_max_probabilities <= action_threshold:
+        #             for pos in self.minefield.all_places():
+        #                 if self.advisor.probability_suggestions[pos] != -1 and self.advisor.probabilities_min[pos]==min_of_max_probabilities:
+        #                     # if RECHECK_DEBUG and self.minefield.is_mine(pos):
+        #                     #     Error_Notice(f"想要挖去({pos[1]+1},{pos[0]+1})，但是发现这个地方有雷。", "警告").mainloop()
+        #                     #     return
+        #                     if not self.minefield.is_mine(pos):
+        #                         changed |= m.run_dense_task(lambda:self.minefield.dig(pos), text=f"挖开({pos[1]+1},{pos[0]+1})")
+        #                     if changed:
+        #                         return
+        #     if (self.advisor.probabilities_min>=0).any():
+        #         max_of_min_probabilities = self.advisor.probabilities_min[self.advisor.probabilities_min>=0].max()
+        #         if max_of_min_probabilities >= 1-action_threshold:
+        #             for pos in self.minefield.all_places():
+        #                 if self.advisor.probability_suggestions[pos] != -1 and self.advisor.probabilities_max[pos]==max_of_min_probabilities:
+        #                     # if RECHECK_DEBUG and not self.minefield.is_mine(pos):
+        #                     #     Error_Notice(f"想要插旗({pos[1]+1},{pos[0]+1})，但是发现这个地方没有雷。", "警告").mainloop()
+        #                     #     return
+        #                     if self.minefield.is_mine(pos):
+        #                         changed |= self.minefield.flag(pos)
+        #                     if changed:
+        #                         return
+        probabilities_ref = self.advisor.probability_suggestions.copy()
+        probabilities_ref = np.where((probabilities_ref>=0) & (probabilities_ref<=1), probabilities_ref, np.nan)
+        for _ in range(1000):
+            try:
+                pos_with_max_prob = np.unravel_index(np.nanargmax(probabilities_ref), probabilities_ref.shape)
+            except ValueError:
+                pos_with_max_prob = None
+            try:
+                pos_with_min_prob = np.unravel_index(np.nanargmin(probabilities_ref), probabilities_ref.shape)
+            except ValueError:
+                pos_with_min_prob = None
+            if pos_with_max_prob is not None and pos_with_min_prob is not None:
+                if probabilities_ref[pos_with_max_prob]+probabilities_ref[pos_with_min_prob]>1:
+                    if not RECHECK_CHEAT or self.minefield.is_mine(pos_with_max_prob):
+                        changed|= self.minefield.flag(pos_with_max_prob)
+                    else:
+                        probabilities_ref[pos_with_max_prob] = np.nan
+                else:
+                    if not RECHECK_CHEAT or not self.minefield.is_mine(pos_with_min_prob):
+                        changed|= m.run_dense_task(lambda:self.minefield.dig(pos_with_min_prob), text=f"挖开({pos_with_min_prob[1]+1},{pos_with_min_prob[0]+1})...")
+                    else:
+                        probabilities_ref[pos_with_min_prob] = np.nan
+            elif pos_with_max_prob is not None:
+                if not RECHECK_CHEAT or self.minefield.is_mine(pos_with_max_prob):
+                    changed|= self.minefield.flag(pos_with_max_prob)
+                else:
+                    probabilities_ref[pos_with_max_prob] = np.nan
+            elif pos_with_min_prob is not None:
+                if not RECHECK_CHEAT or not self.minefield.is_mine(pos_with_min_prob):
+                    changed|= m.run_dense_task(lambda:self.minefield.dig(pos_with_min_prob), text=f"挖开({pos_with_min_prob[1]+1},{pos_with_min_prob[0]+1})...")
+                else:
+                    probabilities_ref[pos_with_min_prob] = np.nan
+            else:
+                break
+            if changed:
+                return
+        
         Confirm_Notice("无事可做力（悲", "提醒", ["やりますね"]).mainloop()
 
     def is_cover(self, col, row):
@@ -918,7 +959,8 @@ class Block(BaseObject):
             self._buffer_suggestion = self.game.minefield.suggestion[self.row][self.col]
             if self.showing>=9 and self._buffer_suggestion is not None:
                 self.picture = Im.new('RGBA', Block.pic[0].size, self.get_color(self._buffer_suggestion))
-                Imd.Draw(self.picture).text((0, 0), "%i%%" % round(100*self._buffer_suggestion), BLACK)
+                if self.picture.height >= 20:
+                    Imd.Draw(self.picture).text((0, 0), "%i%%" % round(100*self._buffer_suggestion), BLACK)
                 if self.game.minefield.is_suspected(self.col, self.row):
                     self.picture.paste(Block.pic[10], (0, 0), Block.pic[10].getchannel('A'))
                 elif self.game.minefield.is_flag(self.col, self.row):
@@ -970,12 +1012,14 @@ class MainMenu(BaseObject):
         self.objects = [
             PureText(self, (100, 0), (600, 80), "爽 雷",
                      textfont=FONT_TITLE, window=self),
-            Button(self, (100, 100), (600, 80), _PureText("初级(9x9 m10)",
-                   TEXTCOLOR_L, FONT_TEXT, (600, 100))(), self, self.start_game_L),
-            Button(self, (100, 210), (600, 80), _PureText("中级(16x16 m40)",
-                   TEXTCOLOR_M, FONT_TEXT, (600, 100))(), self, self.start_game_M),
-            Button(self, (100, 320), (600, 80), _PureText("高级(30x16 m99)",
-                   TEXTCOLOR_H, FONT_TEXT, (600, 100))(), self, self.start_game_H),
+            Button(self, (100, 100), (600, 70), _PureText("初级(9x9 m10)",
+                   TEXTCOLOR_L, FONT_TEXT, (600, 70))(), self, self.start_game_L),
+            Button(self, (100, 180), (600, 70), _PureText("中级(16x16 m40)",
+                   TEXTCOLOR_M, FONT_TEXT, (600, 70))(), self, self.start_game_M),
+            Button(self, (100, 260), (600, 70), _PureText("高级(30x16 m99)",
+                   TEXTCOLOR_H, FONT_TEXT, (600, 70))(), self, self.start_game_H),
+            Button(self, (100, 340), (600, 60), _PureText("疯狂(64x36 m999)",
+                   (0,0,0,TEXTCOLOR_H[3]), FONT_TEXT, (600, 60))(), self, self.start_game_crazy),
             Button(self, (100, 430), (150, 60), _PureText("退出",
                                                           (177, 34, 76, 255), FONT_TEXT, (150, 60))(), self, quitgame),
             Button(self, (300, 430), (150, 60), _PureText("说明",
@@ -985,20 +1029,23 @@ class MainMenu(BaseObject):
         self.clock = pg.time.Clock()
         self._refresh = True
 
-    def run_dense_task(self, func):
+    def run_dense_task(self, func, text='计算中...'):
         import threading
         completed = False
         result = None
         def _func():
             nonlocal completed, result
             self._refresh = True
-            result = func()
+            try:
+                result = func()
+            except Exception as e:
+                Error_Notice(format_exc()).mainloop()
             self._refresh = True
             completed = True
-        threading.Thread(target=_func).start()
+        threading.Thread(target=_func, daemon=True).start()
 
         loading_im =Im.new('RGBA', (200, 80), (255, 255, 255, 100))
-        Imd.Draw(loading_im).text((0, 0), "计算中...", (0, 0, 0), FONT_TEXT)
+        Imd.Draw(loading_im).text((0, 0), text, (0, 0, 0), FONT_TEXT)
         root.blit(im2pg(loading_im), ((SCREEN_SIZE[0]-200)//2, (SCREEN_SIZE[1]-80)//2))
         pg.display.flip()
 
@@ -1040,6 +1087,9 @@ class MainMenu(BaseObject):
 
     def start_game_H(self):
         return self.start_game(30, 16, 99)
+    
+    def start_game_crazy(self):
+        return self.start_game(64, 36, 999)
 
     def mainloop(self):
         while True:
