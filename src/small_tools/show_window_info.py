@@ -248,13 +248,16 @@ class InfoWindow(QtWidgets.QWidget):
 class WindowMover:
     def __init__(self, hwnd=None, enabled=True):
         self.hwnd = hwnd
-        self.is_moving = False
         self.enabled = enabled
-        self.offset = (0, 0)
+        self.offset = None
 
     @property
     def enabled(self):
         return self._enabled
+    
+    @property
+    def is_moving(self):
+        return self.offset is not None
     
     @enabled.setter
     def enabled(self, value):
@@ -271,9 +274,13 @@ class WindowMover:
         if not self.hwnd:
             print("No window to move.")
             return
-        rect = win32gui.GetWindowRect(self.hwnd)
-        self.offset = (cursor_pos[0] - rect[0], cursor_pos[1] - rect[1])
-        self.is_moving = True
+        try:
+            rect = win32gui.GetWindowRect(self.hwnd)
+            self.offset = (cursor_pos[0] - rect[0], cursor_pos[1] - rect[1])
+        except Exception as e:
+            self.hwnd = None
+            self.offset = None
+        
     
     def move(self, cursor_pos=None):
         if not self.enabled or not self.is_moving:
@@ -286,16 +293,27 @@ class WindowMover:
         new_x = cursor_pos[0] - self.offset[0]
         new_y = cursor_pos[1] - self.offset[1]
         print(f"Moving window {self.hwnd} to ({new_x}, {new_y})")
-        window_size = win32gui.GetWindowRect(self.hwnd)
         try:
-            win32gui.MoveWindow(self.hwnd, new_x, new_y, window_size[2] - window_size[0], window_size[3] - window_size[1], True)
+            window_size = win32gui.GetWindowRect(self.hwnd)
+        except Exception as e:
+            self.stop_move()
+            return 
+        if new_x == window_size[0] and new_y == window_size[1]:
+            return
+        try:
+            hparent = win32gui.GetParent(self.hwnd)
+            if hparent:
+                target_x, target_y = win32gui.ScreenToClient(hparent, (new_x, new_y))
+            else:
+                target_x, target_y = new_x, new_y
+            win32gui.MoveWindow(self.hwnd, target_x, target_y, window_size[2] - window_size[0], window_size[3] - window_size[1], True)
         except Exception as e:
             for _ in range(5):
                 SparkIgnite(cursor_pos).show()
             print(f"Failed to move window: {e}")
 
     def stop_move(self):
-        self.is_moving = False
+        self.offset = None
 
 class SparkIgnite(QtWidgets.QWidget):
     instances = []
