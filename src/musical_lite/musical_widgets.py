@@ -21,6 +21,12 @@ class MusicalLiteWidget(WidgetBox):
             width=110,
             bg_color=QColor(150, 200, 100)
         )
+        self.reverser_button = PushButton(
+            onclick=lambda:QTimer.singleShot(0, self.audio_reverse_nonblocking),
+            text="Reverse", 
+            width=120,
+            bg_color=QColor(200, 100, 150)
+        )
         self.piano_button = PushButton(
             onclick=lambda:run(self.master, 'pygpiano.py'),
             text="Piano",
@@ -47,7 +53,8 @@ class MusicalLiteWidget(WidgetBox):
         )
         if has_lib("pygame", 'pydub', 'scipy'):
             self.addLine(
-                self.player_button,
+                # self.player_button,
+                self.reverser_button,
                 self.piano_button,
                 self.bpm_button,
             ).addLine(
@@ -68,6 +75,39 @@ class MusicalLiteWidget(WidgetBox):
         if file_dialog.exec_():
             audio_path = file_dialog.selectedFiles()[0]
             return run(self.master, 'pygplayer.py', arguments=(audio_path,))
+        
+    def audio_reverse(self):
+        def _get_output_path(audio_path):
+            output_path = os.path.splitext(audio_path)[0] + "_reversed" + os.path.splitext(audio_path)[1]
+            if os.path.exists(output_path):
+                extension_marker_int = 2
+                while True:
+                    output_path = os.path.splitext(audio_path)[0] + f"_reversed({extension_marker_int})" + os.path.splitext(audio_path)[1]
+                    if not os.path.exists(output_path):
+                        break
+                    extension_marker_int += 1
+            return output_path
+        from musical_lite.musicallitelib import Converter
+        fps = get_clipboard_file_paths()
+        for fp in fps:
+            if fp and fp.lower().endswith(('.mp3', '.wav', '.flac', '.ogg', '.aac', '.m4a')):
+                audio_path = fp
+                output_path = _get_output_path(audio_path)
+                Converter.reverse_audio(audio_path, output_path)
+                self.master.messages.put_nowait(f"Reversed audio saved to: {output_path}")
+                return
+        file_dialog = QFileDialog(directory=os.path.join(os.path.expanduser("~"), "Music"))
+        file_dialog.setFileMode(QFileDialog.ExistingFile)
+        file_dialog.setNameFilter("Audio Files (*.mp3 *.wav *.flac *.ogg *.aac *.m4a)")
+        if file_dialog.exec_():
+            audio_path = file_dialog.selectedFiles()[0]
+            output_path = _get_output_path(audio_path)
+            Converter.reverse_audio(audio_path, output_path)
+            self.master.messages.put_nowait(f"Reversed audio saved to: {output_path}")
+
+    def audio_reverse_nonblocking(self):
+        import threading
+        threading.Thread(target=self.audio_reverse).start()
     
     def extract_audio(self):
         from musical_lite.musicallitelib import Converter

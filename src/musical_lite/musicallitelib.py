@@ -74,6 +74,22 @@ class Converter:
             mp3_path
         ]
         return subprocess.run(command, check=True)
+    
+    @staticmethod
+    def reverse_audio(input_path, output_path):
+        """
+        使用ffmpeg将音频文件反转
+        
+        :param input_path: 输入的音频文件路径
+        :param output_path: 输出的反转后音频文件路径
+        """
+        command = [
+            "ffmpeg",
+            "-i", input_path,
+            "-af", "areverse",
+            output_path
+        ]
+        return subprocess.run(command, check=True)
 
     @staticmethod
     def read_audio_data(file_path):
