@@ -452,17 +452,28 @@ class TrayIconWidget:
 
         self.add_action(SETTINGS.window_title, lambda:os.startfile(SETTINGS.project_dir))
         self.add_action("Where's My Data?", lambda:os.startfile(SETTINGS.working_dir))
-        self.add_action(f"Show/Hide({SETTINGS.window_toggleshowkey})", lambda:self.manager.refreshHiddenState(not self.manager.hidden))
-        self.add_action(f"Exit({SETTINGS.window_exitkey})", self.exit)
         self.add_action("Set Background", self.manager.bgwidget.reset_background_image)
         self.add_action("Settings", SETTINGS.open_popup_file)
+        self.add_action(f"Show/Hide({SETTINGS.window_toggleshowkey})", lambda:self.manager.refreshHiddenState(not self.manager.hidden))
+        self.add_action(f"Exit({SETTINGS.window_exitkey})", self.exit)
 
         self.tray_icon.show()
 
     def add_action(self, name:str, callback):
         action = QAction(name, self.app)
         action.triggered.connect(callback)
-        self.menu.addAction(action)
+        # 额外设置Restart和Exit选项的背景颜色：实测不可行
+        # if name.startswith("Exit") or name.startswith("Restart"):
+        #     action.setProperty("special", "true")
+
+        # 试图将新添加的菜单项插入到以 "Exit" 开头的菜单项之前，如果没有找到这样的菜单项，则添加到末尾
+        exit_action = None
+        for k,a in self.tray_actions.items():
+            if a.text().startswith("Exit"):
+                self.menu.insertAction(a, action)
+                break
+        else:
+            self.menu.addAction(action)
         self.tray_actions[name] = action
         return action
 

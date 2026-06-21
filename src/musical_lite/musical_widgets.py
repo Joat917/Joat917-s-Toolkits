@@ -1,6 +1,7 @@
 from basic_settings import *
 from main_widgets import MainWindow, WidgetBox, PlainText, PushButton, has_lib
 from common_utilities import get_clipboard_file_paths
+cl=PushButton.color_shorthand
 
 def run(master:MainWindow, path:str, *, without_console=True, arguments=()):
     if hasattr(master, 'droprunner'):
@@ -18,38 +19,32 @@ class MusicalLiteWidget(WidgetBox):
         self.player_button = PushButton(
             onclick=self.run_player,
             text="Player",
-            width=110,
-            bg_color=QColor(150, 200, 100)
+            bg_color=cl(143)
         )
         self.reverser_button = PushButton(
             onclick=lambda:QTimer.singleShot(0, self.audio_reverse_nonblocking),
             text="Reverse", 
-            width=120,
-            bg_color=QColor(200, 100, 150)
+            bg_color=cl(143)
         )
         self.piano_button = PushButton(
             onclick=lambda:run(self.master, 'pygpiano.py'),
             text="Piano",
-            width=110,
-            bg_color=QColor(100, 150, 250)
+            bg_color=cl(142)
         )
         self.bpm_button = PushButton(
             onclick=lambda:run(self.master, 'pygbpm.py'),
             text="BPMCount",
-            width=160,
-            bg_color=QColor(250, 150, 100)
+            bg_color=cl(242)
         )
         self.extract_audio_button = PushButton(
             onclick=lambda:QTimer.singleShot(0, self.extract_audio_nonblocking),
             text="Extract Audio",
-            width=220,
-            bg_color=QColor(250, 150, 150)
+            bg_color=cl(143)
         )
         self.audio_decompose_button = PushButton(
             onclick=self.audio_decompose, 
             text = "Extract Vocals",
-            width=220, 
-            bg_color=QColor(150, 250, 150)
+            bg_color=cl(142)
         )
         if has_lib("pygame", 'pydub', 'scipy'):
             self.addLine(

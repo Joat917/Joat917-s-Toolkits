@@ -113,8 +113,10 @@ class SwitchButton(QLabel):
 class PushButton(QPushButton):
     "带背景色的圆角按钮"
     def __init__(
-            self, text="", parent=None, 
-            width=160, 
+            self, text="", 
+            *, 
+            parent=None, 
+            width=None, 
             height=SETTINGS.pushbutton_height, 
             fontSize=None,
             bg_color=QColor(SETTINGS.pushbutton_default_bgcolor), 
@@ -124,8 +126,15 @@ class PushButton(QPushButton):
             alpha = SETTINGS.pushbutton_alpha, 
             onclick=lambda:None):
         super().__init__(text, parent)
-        self.setFixedSize(width, height)
+
         self.fontSize = fontSize if fontSize is not None else SETTINGS.font_size
+        self.setFont(QFont(SETTINGS.font_name, self.fontSize))
+        if width is None:
+            fm = QFontMetrics(self.font())
+            text_width = fm.horizontalAdvance(text)
+            width = text_width + round(height*0.75)  # 根据文本宽度和按钮高度计算总宽度，保证按钮足够大以容纳文本
+        
+        self.setFixedSize(width, height)
         self.text_color = QColor(text_color)
         self.bg_color = QColor(bg_color)
         if hover_color is None:
@@ -212,10 +221,34 @@ class PushButton(QPushButton):
         painter.drawRoundedRect(0, 0, self.width(), self.height(), self.border_radius, self.border_radius)
 
         # 绘制文本
+        painter.setFont(self.font())
         painter.setPen(self.text_color)
-        font = QFont(SETTINGS.font_name)
-        font.setPointSize(self.fontSize)
-        painter.setFont(font)
         painter.drawText(self.rect(), Qt.AlignCenter, self.text())
 
         painter.end()
+
+    @staticmethod
+    def color_shorthand(x):
+        """
+        使用一个三位整数描述一个颜色，每一位对应一个颜色通道。
+        每一位取0-4，分别对应0,100,150,200,250
+
+        这样做的好处是可以非常简洁地描述一个颜色，大幅缩小颜色空间，避免不必要的复杂度。
+        建议取数位之和为6-8。
+        """
+        def digit_to_color(digit, channel_name):
+            try:
+                return [0, 100, 150, 200, 250][digit]
+            except IndexError as exc:
+                raise ValueError(f"Invalid digit '{digit}' in color shorthand '{x}' for channel {channel_name}. Must be 0-4.") from exc
+        if not isinstance(x, int):
+            raise ValueError(f"Color shorthand must be an integer, got {type(x).__name__}.")
+        if x < 0:
+            raise ValueError(f"Color shorthand must be a non-negative integer, got {x}.")
+        if x > 999:
+            raise ValueError(f"Color shorthand must be at most three digits, got {x}.")
+        r = digit_to_color((x // 100) % 10, 'red')
+        g = digit_to_color((x // 10) % 10, 'green')
+        b = digit_to_color(x % 10, 'blue')
+        return QColor(r, g, b)
+        

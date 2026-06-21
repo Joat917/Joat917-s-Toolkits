@@ -78,6 +78,7 @@ class Settings:
 
         self.contextmenu_bgcolor = "#333333"
         self.contextmenu_hover_bgcolor = "#415B91"
+        self.contextmenu_hover_bgcolor_special = "#994455"
         self.contextmenu_fgcolor = "#FFFFFF"
         self.contextmenu_bgalpha = 200 # 0-255
         self.contextmenu_fgalpha = 200 # 0-255
@@ -250,6 +251,10 @@ class Settings:
     @property
     def contextmenu_hover_bgcolor_tuple(self):
         return self.color_string_to_tuple(self.contextmenu_hover_bgcolor)
+    
+    @property
+    def contextmenu_hover_bgcolor_special_tuple(self):
+        return self.color_string_to_tuple(self.contextmenu_hover_bgcolor_special)
     
     @property
     def contextmenu_fgcolor_tuple(self):

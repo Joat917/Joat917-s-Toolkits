@@ -1,6 +1,7 @@
 from basic_settings import *
 from main_widgets import MainWindow, WidgetBox, PlainText, PushButton, SwitchButton, has_lib
 from common_utilities import get_clipboard_file_paths, get_clipboard_text, get_clipboard_image
+cl=PushButton.color_shorthand
 
 def run_tool(master:MainWindow, script_path:str, *args):
     if hasattr(master, 'droprunner'):
@@ -25,8 +26,7 @@ class InlineCalculatorWidget(WidgetBox):
             widgets=[PushButton(
                 onclick=lambda: run_tool(self.master, 'inline_calculator.py'), 
                 text="Inline Calculator", 
-                width=240, 
-                bg_color=QColor(100, 150, 250)
+                bg_color=cl(124)
             )]
         )
 
@@ -39,42 +39,35 @@ class OtherToolsWidget(WidgetBox):
         self.word_counter_button = PushButton(
             onclick=self.run_word_counter, 
             text="WordCount", 
-            width=190, 
-            bg_color=QColor(200, 200, 100)
+            bg_color=cl(231)
         )
         self.hex_quickview_button = PushButton(
             onclick=self.run_hex_quickview, 
             text="RawHex", 
-            width=150, 
-            bg_color=QColor(100, 200, 200)
+            bg_color=cl(132)
         )
         self.qr_scanner_button = PushButton(
             onclick=self.run_qr_scanner,
             text="QRScan",
-            width=140,
-            bg_color=QColor(100, 200, 150)
+            bg_color=cl(132)
         ) if has_lib("cv2") else PushButton(
             text="Need Cv2", 
-            width=160,
             bg_color=QColor("transparent")
         )
         if has_lib("borax", "openpyxl"):
             self.scdach_calendar_button = PushButton(
                 onclick=self.run_scdach_calendar, 
                 text="Calendar", 
-                width=160, 
-                bg_color=QColor(150, 100, 250)
+                bg_color=cl(313)
             )
             self.schedule_achievements_button = PushButton(
                 onclick=self.run_schedule_achievements, 
                 text="SchAchv", 
-                width=160, 
-                bg_color=QColor(200, 100, 200)
+                bg_color=cl(313)
             )
         else:
             self.scdach_calendar_button = PushButton(
                 text="Need Borax and Openpyxl", 
-                width=410, 
                 bg_color=QColor("transparent")
             )
             self.schedule_achievements_button = None
@@ -82,31 +75,26 @@ class OtherToolsWidget(WidgetBox):
         self.quinifier_button = PushButton(
             onclick=self.run_quinifier, 
             text = "Quinify", 
-            width = 150, 
-            bg_color= QColor(150, 200, 100)
+            bg_color= cl(222)
         )
         self.mojibake_button = PushButton(
             onclick=self.run_mojibake, 
             text = "Corrupter", 
-            width = 150, 
-            bg_color= QColor(200, 150, 100)
+            bg_color= cl(322)
         )
 
         self.minifier_button = PushButton(
             onclick=self.run_minifier, 
             text="Minify", 
-            width=130, 
-            bg_color=QColor(200, 150, 150)
+            bg_color=cl(232)
         ) if has_lib("python_minifier") else None
 
         self.script_generator_button = PushButton(
             onclick=lambda: run_tool(self.master, 'script_generator.py'), 
             text="ScriptGen", 
-            width=180, 
-            bg_color=QColor(100, 150, 200)
+            bg_color=cl(123)
         ) if has_lib("pyautogui") else PushButton(
             text="Need PyAutoGUI", 
-            width=260, 
             bg_color=QColor("transparent")
         )
 
@@ -321,14 +309,12 @@ class KillersWidget(WidgetBox):
         self.restart_explorer_button = PushButton(
             onclick=self.restart_explorer, 
             text="Restart Explorer", 
-            width=230, 
-            bg_color=QColor(250, 100, 100)
+            bg_color=cl(411)
         )
         self.suiside_button = PushButton(
             onclick=self.kill_python, 
             text="Kill All Python", 
-            width=210,
-            bg_color=QColor(250, 150, 150)
+            bg_color=cl(412)
         )
         self.addLine(self.restart_explorer_button, self.suiside_button)
 

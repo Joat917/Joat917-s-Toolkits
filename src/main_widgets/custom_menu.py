@@ -27,5 +27,10 @@ class CustomMenu(QMenu):
                 background-color: rgba{SETTINGS.contextmenu_hover_bgcolor_tuple+(SETTINGS.contextmenu_bgalpha,)};
                 border-radius: {SETTINGS.contextmenu_border_radius}px;
             }}
+            /*
+            QMenu::item[special="true"]:selected {{
+                background-color: rgba{SETTINGS.contextmenu_hover_bgcolor_special_tuple+(SETTINGS.contextmenu_bgalpha,)};
+            }}
+            */
         """)
 

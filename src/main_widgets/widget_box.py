@@ -62,6 +62,47 @@ class WidgetBox(QWidget):
 
         painter.end()
 
+    # 捕获子类构造函数可能的报错，防止模块崩溃导致整个程序崩溃
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # __init__装饰器
+        def init_wrapper(init_func):
+            def wrapped_init(self, *args, **kwargs):
+                try:
+                    init_func(self, *args, **kwargs)
+                except Exception as e:
+                    with open(SETTINGS.error_log_file, "a+", encoding="utf-8") as f:
+                        f.write(f"Error in {cls.__name__}.__init__:\n")
+                        f.write(traceback.format_exc())
+                        f.write("\n\n")
+                    # 调用父类构造函数，保证基本的UI结构被创建出来
+                    try:
+                        super(cls, self).__init__(*args, **kwargs)
+                    except Exception as e:
+                        raise RuntimeError(f"Failed to initialize base WidgetBox for {cls.__name__}") from e
+                    # 覆盖各个方法
+                    self.add = lambda *a, **k: None
+                    self.addLine = lambda *a, **k: None
+                    old_paintEvent = self.paintEvent
+                    def new_paintEvent(event):
+                        try:
+                            old_paintEvent(event)
+                        except Exception as e:
+                            # 因为初始化失败，我们预期paintEvent也会无法正常工作。
+                            return # 忽略次级异常
+                    self.paintEvent = new_paintEvent
+                    # 尝试显示错误信息
+                    try:
+                        error_label = QLabel("Error", self)
+                        error_label.setStyleSheet(f"color: red; max-width: 300px; white-space: pre-wrap;")
+                        error_label.setAlignment(Qt.AlignCenter)
+                        self.main_layout.addWidget(error_label)
+                    except Exception as e:
+                        pass # 如果连显示错误信息都失败了，那就算了
+            return wrapped_init
+        cls.__init__ = init_wrapper(cls.__init__)
+        
+
 
 class _AddLineResult:
     def __init__(self, box:WidgetBox, elements:list[QWidget], lines:list[QLayout]):

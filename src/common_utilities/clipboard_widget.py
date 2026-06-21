@@ -1,6 +1,7 @@
 from basic_settings import *
 from main_widgets import MainWindow, WidgetBox, PlainText, PushButton
 from .drop_runner import DropRunner
+cl=PushButton.color_shorthand
 
 class ClipboardContext:
     def __init__(self, error_callback=lambda e: None):
@@ -28,32 +29,27 @@ class ClipboardWidget(WidgetBox):
         self.master=parent
         self.clear_format_button = PushButton(
             text="Clipboard Clear Format", 
-            width=320, 
-            bg_color=QColor(150, 100, 250),
+            bg_color=cl(142),
             onclick=self.clear_format_callback
         )
         self.save_image_button = PushButton(
             text="Save Clipboard Image", 
-            width=320, 
-            bg_color=QColor(200, 200, 100),
+            bg_color=cl(124),
             onclick=self.save_image_callback
         )
         self.reveal_in_explorer_button = PushButton(
             text="Reveal File in Explorer", 
-            width=300, 
-            bg_color=QColor(150, 250, 100),
+            bg_color=cl(331),
             onclick=self.reveal_in_explorer_callback
         )
         self.clear_content_button = PushButton(
             text="Clipboard Clear Content", 
-            width=320, 
-            bg_color=QColor(250, 150, 100),
+            bg_color=cl(412),
             onclick=self.clear_content_callback
         )
         self.advanced_reader_button = PushButton(
             text = "Advanced ClipboardReader",
-            width=360,
-            bg_color=QColor(100, 250, 150),
+            bg_color=cl(313),
             onclick=self.start_advanced_reader_callback
         )
         self.current_clipboard_state = PlainText(
