@@ -10,6 +10,7 @@ model.to(device)
 sample_rate = HDEMUCS_HIGH_MUSDB.sample_rate
 sources = model.sources
 num_sources = len(sources)
+audio_channels = model.audio_channels
 
 def decompose(input_path, output_dir=None, segment_length=10.0, padding_length=10.0, verbose=False):
     input_path = pathlib.Path(input_path)
@@ -28,11 +29,13 @@ def decompose(input_path, output_dir=None, segment_length=10.0, padding_length=1
         waveform = resampler(waveform)
     waveform = waveform.to(device)
     waveform = waveform.unsqueeze(0)  # Add batch dimension
+    if waveform.shape[1] != audio_channels:
+        waveform = waveform.repeat(1, audio_channels // waveform.shape[1], 1)
 
     total_length = waveform.shape[2]
     segment_samples = int(segment_length * sample_rate)
     padding_samples = int(padding_length * sample_rate)
-    output = torch.zeros((1, num_sources, waveform.shape[1], total_length), device=device)
+    output = torch.zeros((1, num_sources, audio_channels, total_length), device=device)
 
     if verbose:
         print(f'Processing audio in segments of {segment_length} seconds with {padding_length} seconds of padding...')
