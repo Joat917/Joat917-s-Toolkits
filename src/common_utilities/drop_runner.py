@@ -126,11 +126,11 @@ class DropRunner(WidgetBox):
                     self.push_message("Not a Python or C script: " + file_path)
                 return
             
-            text = os.path.basename(file_path)
-            _suffix = os.path.dirname(file_path).replace('\\', '/')
-            if len(text) + len(_suffix) > 25:
-                _suffix = '...' + _suffix[-(30 - len(text) - 3):]
-            text += ' @ ' + _suffix
+            text = self._text_truncator_in_display(
+                text=os.path.basename(file_path), 
+                suffix=os.path.dirname(file_path).replace('\\', '/'), 
+                max_width=450
+            )
 
             label = PushButton(
                 text=text,
@@ -143,6 +143,35 @@ class DropRunner(WidgetBox):
             )
             self.last_dropped_sublayout.addWidget(label)
             self._last_dropped_widgets.append(label)
+
+    @classmethod
+    def _text_truncator_in_display(cls, text, suffix, max_width):
+        """
+        将`text @ suffix` 的文本截断为`text @ ...fix`，使得其在显示时不超过`max_width`的宽度。
+        """
+        font = QFont(SETTINGS.font_name, SETTINGS.font_size)
+        metrics = QFontMetrics(font)
+
+        raw_text = text + ' @ ' + suffix
+        if metrics.width(raw_text) <= max_width:
+            return raw_text
+
+        for i in range(1,len(suffix)+1):
+            truncated_suffix = '...' + suffix[i:]
+            truncated_text = text + ' @ ' + truncated_suffix
+            if metrics.width(truncated_text) <= max_width:
+                return truncated_text
+        
+        truncated_text = text
+        if metrics.width(truncated_text) <= max_width:
+            return truncated_text
+        for i in range(1,len(text)+1):
+            truncated_text = text[:-i] + '...'
+            if metrics.width(truncated_text) <= max_width:
+                return truncated_text
+
+        return '...'  # 如果所有尝试都失败，返回一个简单的省略号
+
 
     def run(self, script_path: str, without_console: bool=False, run_dir=None, arguments:tuple[str] = ()):
         """
