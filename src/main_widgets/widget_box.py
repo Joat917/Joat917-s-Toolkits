@@ -8,7 +8,7 @@ class PlainText(QLabel):
         self.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
         self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.setWordWrap(True)
-        self.setStyleSheet(f"color: {SETTINGS.text_color};")
+        self.setStyleSheet(f"color: {SETTINGS.colors.text_color};")
 
 
 class WidgetBox(QWidget):
@@ -20,7 +20,7 @@ class WidgetBox(QWidget):
         self.title=QLabel(title, self)
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size_large, QFont.Bold))
-        self.title.setStyleSheet(f"color: {SETTINGS.text_color};")
+        self.title.setStyleSheet(f"color: {SETTINGS.colors.text_color};")
         self.main_layout.addWidget(self.title)
         if widgets:
             for widget in widgets:
@@ -58,7 +58,7 @@ class WidgetBox(QWidget):
         pen = QPen(Qt.gray, 2)
         painter.setPen(pen)
         rect = self.rect().adjusted(1, 1, -1, -1)
-        painter.drawRoundedRect(rect, SETTINGS.widgetbox_border_radius, SETTINGS.widgetbox_border_radius)
+        painter.drawRoundedRect(rect, SETTINGS.geometry.widgetbox_border_radius, SETTINGS.geometry.widgetbox_border_radius)
 
         painter.end()
 
@@ -71,7 +71,7 @@ class WidgetBox(QWidget):
                 try:
                     init_func(self, *args, **kwargs)
                 except Exception as e:
-                    with open(SETTINGS.error_log_file, "a+", encoding="utf-8") as f:
+                    with open(SETTINGS.paths.error_log_file, "a+", encoding="utf-8") as f:
                         f.write(f"Error in {cls.__name__}.__init__:\n")
                         f.write(traceback.format_exc())
                         f.write("\n\n")

@@ -32,12 +32,12 @@ class ClickerWidget(WidgetBox):
 
         self.interval_label = QLabel("Interval (ms):")
         self.interval_label.setFont(QFont(SETTINGS.font_name))
-        self.interval_label.setStyleSheet(f"color:{SETTINGS.text_color}")
+        self.interval_label.setStyleSheet(f"color:{SETTINGS.colors.text_color}")
         self.interval_input = QSpinBox()
-        self.interval_input.setRange(1, SETTINGS.clicker_max_interval)
-        self.interval_input.setValue(SETTINGS.clicker_default_interval)
+        self.interval_input.setRange(1, SETTINGS.times.clicker_max_interval)
+        self.interval_input.setValue(SETTINGS.times.clicker_default_interval)
         self.interval_input.setFont(QFont(SETTINGS.font_name))
-        self.interval_input.setStyleSheet(f"color:{SETTINGS.text_color}")
+        self.interval_input.setStyleSheet(f"color:{SETTINGS.colors.text_color}")
         self.addLine(self.interval_label, self.interval_input)
 
         self.hotkey_guideline = PlainText(

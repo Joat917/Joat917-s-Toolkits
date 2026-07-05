@@ -3,7 +3,7 @@ from basic_settings import *
 class PopupWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.resize(SETTINGS.popup_window_width, SETTINGS.popup_window_height)
+        self.resize(SETTINGS.geometry.popup_window_width, SETTINGS.geometry.popup_window_height)
 
     def show_popup(self):
         self.show()
@@ -12,7 +12,7 @@ class InformationPopup(PopupWindow):
     def __init__(self, message, title="Information"):
         super().__init__()
         self.setWindowTitle(title)
-        self.setWindowIcon(QIcon(SETTINGS.icon_path))
+        self.setWindowIcon(QIcon(SETTINGS.paths.icon_path))
 
         self.label = QLabel(message, self)
         self.label.setWordWrap(True)
@@ -32,7 +32,7 @@ class ConfirmationPopup(PopupWindow):
     def __init__(self, message, title="Confirmation", callback=lambda response: None):
         super().__init__()
         self.setWindowTitle(title)
-        self.setWindowIcon(QIcon(SETTINGS.icon_path))
+        self.setWindowIcon(QIcon(SETTINGS.paths.icon_path))
         self.callback = callback
         self.user_response = None
         
@@ -91,10 +91,10 @@ class FadingPopup(QWidget):
         palette.setColor(QPalette.WindowText, Qt.white)
         self.label.setPalette(palette)
         self.label.setStyleSheet(
-            f"background-color: {SETTINGS.popup_fading_bgcolor}; "
-            f"border-radius: {SETTINGS.popup_fading_border_radius}px; "
-            f"padding: {SETTINGS.popup_fading_padding}px; "
-            f"color: {SETTINGS.popup_fading_fgcolor}; "
+            f"background-color: {SETTINGS.colors.popup_fading_bgcolor}; "
+            f"border-radius: {SETTINGS.geometry.popup_fading_border_radius}px; "
+            f"padding: {SETTINGS.geometry.popup_fading_padding}px; "
+            f"color: {SETTINGS.colors.popup_fading_fgcolor}; "
             f"font-size: {SETTINGS.font_size}pt; "
             f"font-family: {SETTINGS.font_name};"
         )
@@ -102,14 +102,14 @@ class FadingPopup(QWidget):
         self.setLayout(layout)
 
     def initAnimations(self):
-        self.animation.setDuration(SETTINGS.popup_fading_animation_duration)
-        self.opacity_animation.setDuration(SETTINGS.popup_fading_animation_duration)
+        self.animation.setDuration(SETTINGS.times.popup_fading_animation_duration)
+        self.opacity_animation.setDuration(SETTINGS.times.popup_fading_animation_duration)
         self.opacity_animation.setStartValue(0.0)
-        self.opacity_animation.setEndValue(SETTINGS.popup_fading_final_opacity)
+        self.opacity_animation.setEndValue(SETTINGS.opacity.popup_fading_final_opacity)
         self.opacity_animation.finished.connect(self.startHideTimer)
 
     def startHideTimer(self):
-        self.timer.singleShot(SETTINGS.popup_fading_delay, self.fadeOut)
+        self.timer.singleShot(SETTINGS.times.popup_fading_delay, self.fadeOut)
 
     def fadeIn(self):
         screen_geometry = QApplication.desktop().screenGeometry()
@@ -118,7 +118,7 @@ class FadingPopup(QWidget):
         window_width = self.width()
         window_height = self.height()
         x_position = (screen_geometry.width() - window_width) // 2
-        y_position = round(screen_geometry.height() * SETTINGS.popup_fading_yratio - window_height)
+        y_position = round(screen_geometry.height() * SETTINGS.geometry.popup_fading_yratio - window_height)
         self.move(x_position, screen_geometry.height())
         self.setWindowOpacity(0.0)
         self.animation.setStartValue(

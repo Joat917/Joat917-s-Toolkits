@@ -4,7 +4,7 @@ cl=PushButton.color_shorthand
 
 def run_game(master:MainWindow, game_path:str, without_console=True, *args):
     if hasattr(master, 'droprunner'):
-        full_path = os.path.join(SETTINGS.src_dir, 'mini_games', game_path)
+        full_path = os.path.join(SETTINGS.paths.src_dir, 'mini_games', game_path)
         master.droprunner.run(full_path, arguments=args, without_console=without_console)
     else:
         master.messages.put_nowait("DropRunner not found in master window.")
@@ -66,17 +66,17 @@ class MiniGamesWidget(WidgetBox):
             bg_color=cl(223)
         )
         self.thirdmaze_button = PushButton(
-            onclick=lambda: self.master.droprunner.run(os.path.join(SETTINGS.src_dir, 'ThirdMaze', 'MainMenu.py'), run_dir=SETTINGS.src_dir, without_console=True),
+            onclick=lambda: self.master.droprunner.run(os.path.join(SETTINGS.paths.src_dir, 'ThirdMaze', 'MainMenu.py'), run_dir=SETTINGS.paths.src_dir, without_console=True),
             text="ThirdMaze",
             bg_color=cl(331)
         )
         self.fstimer_button = PushButton(
-            onclick=lambda: self.master.droprunner.run(os.path.join(SETTINGS.src_dir, 'FSTimer', 'FSTimer3.pyw'), run_dir=SETTINGS.src_dir, without_console=True),
+            onclick=lambda: self.master.droprunner.run(os.path.join(SETTINGS.paths.src_dir, 'FSTimer', 'FSTimer3.pyw'), run_dir=SETTINGS.paths.src_dir, without_console=True),
             text="FSTimer",
             bg_color=cl(431)
         )
         self.fsviewer_button = PushButton(
-            onclick=lambda: self.master.droprunner.run(os.path.join(SETTINGS.src_dir, 'FSTimer', 'FSViewer3.pyw'), run_dir=SETTINGS.src_dir, without_console=True),
+            onclick=lambda: self.master.droprunner.run(os.path.join(SETTINGS.paths.src_dir, 'FSTimer', 'FSViewer3.pyw'), run_dir=SETTINGS.paths.src_dir, without_console=True),
             text="FSViewer",
             bg_color=cl(431)
         )

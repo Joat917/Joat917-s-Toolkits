@@ -8,7 +8,7 @@ def robustify_0arg(func):
             err_info = f"Exception in {func.__name__}: {e}\n"
             err_info += traceback.format_exc()
             print(err_info)
-            with open(SETTINGS.error_log_file, "a+", encoding="utf-8") as f:
+            with open(SETTINGS.paths.error_log_file, "a+", encoding="utf-8") as f:
                 f.write(err_info)
                 f.write("\n\n")
     return wrapper
@@ -21,7 +21,7 @@ def robustify_1arg(func):
             err_info = f"Exception in {func.__name__}: {e}\n"
             err_info += traceback.format_exc()
             print(err_info)
-            with open(SETTINGS.error_log_file, "a+", encoding="utf-8") as f:
+            with open(SETTINGS.paths.error_log_file, "a+", encoding="utf-8") as f:
                 f.write(err_info)
                 f.write("\n\n")
     return wrapper
@@ -30,13 +30,17 @@ class SwitchButton(QLabel):
     "长圆形开关，背景灰色或蓝色。包含一个白色圆形滑块可以左右滑动切换状态。"
     def __init__(self, parent=None, onchange=lambda state:None, onturnon=lambda:None, onturnoff=lambda:None):
         super().__init__(parent)
-        self.setFixedSize(2*SETTINGS.switchbutton_size, SETTINGS.switchbutton_size)
+        # read from settings
+        switch_button_size = SETTINGS.geometry.switchbutton_size
+        switch_button_padding = SETTINGS.geometry.switchbutton_padding
+
+        self.setFixedSize(2*switch_button_size, switch_button_size)
         self.setCursor(Qt.PointingHandCursor)
         self.state = False  # 初始状态为关闭
-        self.slider_position = SETTINGS.switchbutton_padding  # 滑块初始位置
+        self.slider_position = switch_button_padding  # 滑块初始位置
         self.animation_timer = None
         self.animation_repeat_count = 0
-        self.target_position = SETTINGS.switchbutton_padding  # 目标位置
+        self.target_position = switch_button_padding  # 目标位置
         self.onchange = robustify_1arg(onchange)
         self.onturnon = robustify_0arg(onturnon)
         self.onturnoff = robustify_0arg(onturnoff)
@@ -48,15 +52,15 @@ class SwitchButton(QLabel):
         self.onchange(self.state)
         if self.state:
             self.onturnon()
-            self.target_position = self.width() - (SETTINGS.switchbutton_size-SETTINGS.switchbutton_padding)  # 打开状态滑块位置
+            self.target_position = self.width() - (SETTINGS.geometry.switchbutton_size-SETTINGS.geometry.switchbutton_padding)  # 打开状态滑块位置
         else:
             self.onturnoff()
-            self.target_position = SETTINGS.switchbutton_padding  # 关闭状态滑块位置
+            self.target_position = SETTINGS.geometry.switchbutton_padding  # 关闭状态滑块位置
         if self.animation_timer is not None:
             self.animation_timer.stop()
         self.animation_timer = QTimer()
         self.animation_timer.timeout.connect(self.animate_slider)
-        self.animation_timer.start(SETTINGS.switchbutton_animation_interval)  # 启动动画定时器
+        self.animation_timer.start(SETTINGS.times.switchbutton_animation_interval)  # 启动动画定时器
         self.animation_repeat_count = 0
 
     def animate_slider(self):
@@ -85,7 +89,7 @@ class SwitchButton(QLabel):
     def alpha(self):
         # if self.underMouse():
         #     return 255
-        return SETTINGS.switchbutton_alpha
+        return SETTINGS.opacity.switchbutton_alpha
     
     # def mouseMoveEvent(self, ev):
     #     if self._old_under_mouse != self.underMouse():
@@ -96,17 +100,24 @@ class SwitchButton(QLabel):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
+        # 读取设置
+        on_color = QColor(*SETTINGS.colors.switchbutton_oncolor_tuple, self.alpha)
+        off_color = QColor(*SETTINGS.colors.switchbutton_offcolor_tuple, self.alpha)
+        slider_color = QColor(*SETTINGS.colors.switchbutton_slidercolor_tuple, self.alpha)
+        switchbutton_size = SETTINGS.geometry.switchbutton_size
+        switchbutton_padding = SETTINGS.geometry.switchbutton_padding
+
         # 绘制背景
         if self.state:
-            painter.setBrush(QColor(*SETTINGS.switchbutton_oncolor_tuple, self.alpha))
+            painter.setBrush(on_color)
         else:
-            painter.setBrush(QColor(*SETTINGS.switchbutton_offcolor_tuple, self.alpha))
+            painter.setBrush(off_color)
         painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(0, 0, self.width(), self.height(), SETTINGS.switchbutton_size//2, SETTINGS.switchbutton_size//2)
+        painter.drawRoundedRect(0, 0, self.width(), self.height(), switchbutton_size//2, switchbutton_size//2)
 
         # 绘制滑块
-        painter.setBrush(QColor(*SETTINGS.switchbutton_slidercolor_tuple, self.alpha))  # 白色滑块
-        painter.drawEllipse(self.slider_position, SETTINGS.switchbutton_padding, SETTINGS.switchbutton_size-2*SETTINGS.switchbutton_padding, SETTINGS.switchbutton_size-2*SETTINGS.switchbutton_padding)
+        painter.setBrush(slider_color)  # 白色滑块
+        painter.drawEllipse(self.slider_position, switchbutton_padding, switchbutton_size-2*switchbutton_padding, switchbutton_size-2*switchbutton_padding)
         painter.end()
 
 
@@ -117,13 +128,13 @@ class PushButton(QPushButton):
             *, 
             parent=None, 
             width=None, 
-            height=SETTINGS.pushbutton_height, 
+            height=SETTINGS.geometry.pushbutton_height, 
             fontSize=None,
-            bg_color=QColor(SETTINGS.pushbutton_default_bgcolor), 
+            bg_color=QColor(SETTINGS.colors.pushbutton_default_bgcolor), 
             hover_color=None, 
             pressed_color=None, 
-            text_color=QColor(SETTINGS.pushbutton_default_fgcolor), 
-            alpha = SETTINGS.pushbutton_alpha, 
+            text_color=QColor(SETTINGS.colors.pushbutton_default_fgcolor), 
+            alpha = SETTINGS.opacity.pushbutton_alpha, 
             onclick=lambda:None):
         super().__init__(text, parent)
 
@@ -160,32 +171,32 @@ class PushButton(QPushButton):
         self.current_color = self.bg_color
         self.target_color = self.bg_color
         self.color_transition_timer = None
-        self.color_decay_constant = SETTINGS.pushbutton_colordecay_mouseenter
+        self.color_decay_constant = SETTINGS.times.pushbutton_colordecay_mouseenter
 
     # 颜色缓变
     def enterEvent(self, event):
         self.target_color = self.hover_color
-        self.color_decay_constant = SETTINGS.pushbutton_colordecay_mouseenter
+        self.color_decay_constant = SETTINGS.times.pushbutton_colordecay_mouseenter
         self.start_color_transition()
     def leaveEvent(self, event):
         self.target_color = self.bg_color
-        self.color_decay_constant = SETTINGS.pushbutton_colordecay_mouseleave
+        self.color_decay_constant = SETTINGS.times.pushbutton_colordecay_mouseleave
         self.start_color_transition()
     def mousePressEvent(self, event):
         self.target_color = self.pressed_color
-        self.color_decay_constant = SETTINGS.pushbutton_colordecay_mousepress
+        self.color_decay_constant = SETTINGS.times.pushbutton_colordecay_mousepress
         self.start_color_transition()
         super().mousePressEvent(event)
     def mouseReleaseEvent(self, event):
         self.target_color = self.hover_color
-        self.color_decay_constant = SETTINGS.pushbutton_colordecay_mouserelease
+        self.color_decay_constant = SETTINGS.times.pushbutton_colordecay_mouserelease
         self.start_color_transition()
         super().mouseReleaseEvent(event)
     def start_color_transition(self):
         if self.color_transition_timer is None:
             self.color_transition_timer = QTimer()
             self.color_transition_timer.timeout.connect(self.update_color)
-            self.color_transition_timer.start(SETTINGS.pushbutton_colordecay_interval)
+            self.color_transition_timer.start(SETTINGS.times.pushbutton_colordecay_interval)
     def update_color(self):
         r_diff = self.target_color.red() - self.current_color.red()
         g_diff = self.target_color.green() - self.current_color.green()

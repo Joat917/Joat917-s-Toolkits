@@ -15,6 +15,8 @@ except Exception as e:
     import sys
     sys.exit(1)
 
+# show all warnings
+warnings.filterwarnings("always")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

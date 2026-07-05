@@ -160,7 +160,7 @@ class ClipboardMonitorWindow(QMainWindow):
 
 	def init_ui(self):
 		self.setWindowTitle('Clipboard Monitor')
-		self.setWindowIcon(QIcon(SETTINGS.icon_path))
+		self.setWindowIcon(QIcon(SETTINGS.paths.icon_path))
 
 		central = QWidget()
 		self.setCentralWidget(central)
@@ -195,7 +195,7 @@ class ClipboardMonitorWindow(QMainWindow):
 	def apply_settings(self):
 		# geometry
 		try:
-			geom = SETTINGS.clipboardreader_geometry
+			geom = SETTINGS.geometry.clipboardreader_geometry
 			# expected format wxh+x+y
 			if '+' in geom and 'x' in geom:
 				parts = geom.split('+')
@@ -260,8 +260,7 @@ class ClipboardMonitorWindow(QMainWindow):
 			y = geom.y()
 			w = geom.width()
 			h = geom.height()
-			SETTINGS.clipboardreader_geometry = f"{w}x{h}+{x}+{y}"
-			# SETTINGS.save()
+			SETTINGS.geometry.clipboardreader_geometry = f"{w}x{h}+{x}+{y}"
 		except Exception:
 			pass
 

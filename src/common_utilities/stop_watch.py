@@ -16,6 +16,7 @@ DIGITS = {
     0: [1, 1, 1, 1, 1, 1, 0],
     'H': [1, 1, 0, 1, 1, 0, 1]
 }
+IMG_DIR = SETTINGS.paths.img_dir
 
 class TubePainter:
     def __init__(self, size=128, width=24, color=(255, 255, 255, 255)):
@@ -82,12 +83,12 @@ class TubePainter:
 
     @classmethod
     def paint_and_save(cls):
-        tp=TubePainter(size=SETTINGS.stopwatch_tube_length, width=SETTINGS.stopwatch_tube_width, color=SETTINGS.stopwatch_tube_color)
+        tp=TubePainter(size=SETTINGS.geometry.stopwatch_tube_length, width=SETTINGS.geometry.stopwatch_tube_width, color=SETTINGS.colors.stopwatch_tube_color)
         for digit in DIGITS:
-            tp.paintdigit(digit).save(os.path.join(SETTINGS.img_dir, f'digitTube{digit}.png'))
-        tp.paintcolon().save(os.path.join(SETTINGS.img_dir, 'digitTubeC.png'))
-        tp.paintdot().save(os.path.join(SETTINGS.img_dir, 'digitTubeD.png'))
-        Image.new("RGBA", (tp.size, 2*tp.size), (0,0,0,0)).save(os.path.join(SETTINGS.img_dir, 'digitTubeS.png'))
+            tp.paintdigit(digit).save(os.path.join(IMG_DIR, f'digitTube{digit}.png'))
+        tp.paintcolon().save(os.path.join(IMG_DIR, 'digitTubeC.png'))
+        tp.paintdot().save(os.path.join(IMG_DIR, 'digitTubeD.png'))
+        Image.new("RGBA", (tp.size, 2*tp.size), (0,0,0,0)).save(os.path.join(IMG_DIR, 'digitTubeS.png'))
 
 class TubeReader:
     def __init__(self):
@@ -96,19 +97,19 @@ class TubeReader:
 
     def initialize(self):
         for d in DIGITS.keys():
-            if not os.path.isfile(os.path.join(SETTINGS.img_dir, f'digitTube{d}.png')):
+            if not os.path.isfile(os.path.join(IMG_DIR, f'digitTube{d}.png')):
                 raise FileNotFoundError(f'Image file for digit {d} not found.')
-        if not os.path.isfile(os.path.join(SETTINGS.img_dir, 'digitTubeC.png')):
+        if not os.path.isfile(os.path.join(IMG_DIR, 'digitTubeC.png')):
             raise FileNotFoundError('Image file for colon not found.')
-        if not os.path.isfile(os.path.join(SETTINGS.img_dir, 'digitTubeD.png')):
+        if not os.path.isfile(os.path.join(IMG_DIR, 'digitTubeD.png')):
             raise FileNotFoundError('Image file for dot not found.')
-        if not os.path.isfile(os.path.join(SETTINGS.img_dir, 'digitTubeS.png')):
+        if not os.path.isfile(os.path.join(IMG_DIR, 'digitTubeS.png')):
             raise FileNotFoundError('Image file for space not found.')
         
-        self.pictures={d:QPixmap(os.path.join(SETTINGS.img_dir, f'digitTube{d}.png')) for d in DIGITS.keys()}
-        self.pictures[':']=QPixmap(os.path.join(SETTINGS.img_dir, 'digitTubeC.png'))
-        self.pictures['.']=QPixmap(os.path.join(SETTINGS.img_dir, 'digitTubeD.png'))
-        self.pictures[' ']=QPixmap(os.path.join(SETTINGS.img_dir, 'digitTubeS.png'))
+        self.pictures={d:QPixmap(os.path.join(IMG_DIR, f'digitTube{d}.png')) for d in DIGITS.keys()}
+        self.pictures[':']=QPixmap(os.path.join(IMG_DIR, 'digitTubeC.png'))
+        self.pictures['.']=QPixmap(os.path.join(IMG_DIR, 'digitTubeD.png'))
+        self.pictures[' ']=QPixmap(os.path.join(IMG_DIR, 'digitTubeS.png'))
         
 
 class TubeUnit(QLabel):
@@ -134,25 +135,25 @@ class StopWatchMainWindow(QWidget):
         self.setWindowTitle("StopWatch14")
         screen_geometry = QApplication.primaryScreen().geometry()
 
-        _width = SETTINGS.stopwatch_size * 5
-        _height = SETTINGS.stopwatch_size
-        if SETTINGS.stopwatch_xpos>=0:
-            xpos=SETTINGS.stopwatch_xpos
+        _width = SETTINGS.geometry.stopwatch_size * 5
+        _height = SETTINGS.geometry.stopwatch_size
+        if SETTINGS.geometry.stopwatch_xpos>=0:
+            xpos=SETTINGS.geometry.stopwatch_xpos
         else:
-            xpos=screen_geometry.width()+SETTINGS.stopwatch_xpos-_width
-        if SETTINGS.stopwatch_ypos>=0:
-            ypos=SETTINGS.stopwatch_ypos
+            xpos=screen_geometry.width()+SETTINGS.geometry.stopwatch_xpos-_width
+        if SETTINGS.geometry.stopwatch_ypos>=0:
+            ypos=SETTINGS.geometry.stopwatch_ypos
         else:
-            ypos=screen_geometry.height()+SETTINGS.stopwatch_ypos-_height
+            ypos=screen_geometry.height()+SETTINGS.geometry.stopwatch_ypos-_height
         self.setGeometry(xpos, ypos, _width, _height)
-        self.setWindowOpacity(SETTINGS.stopwatch_opacity)
+        self.setWindowOpacity(SETTINGS.opacity.stopwatch_opacity)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
         layout=QHBoxLayout()
         tubeReader=TubeReader()
         for k in tubeReader.pictures:
-            tubeReader.pictures[k]=tubeReader.pictures[k].scaled(round(SETTINGS.stopwatch_size/2), SETTINGS.stopwatch_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            tubeReader.pictures[k]=tubeReader.pictures[k].scaled(round(SETTINGS.geometry.stopwatch_size/2), SETTINGS.geometry.stopwatch_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.tubeunitsList=[
             ('h1',TubeUnit(self, 8, tubeReader)), 
             ('h0',TubeUnit(self, 8, tubeReader)), 

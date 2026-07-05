@@ -3,13 +3,13 @@ from main_widgets import MainWindow, WidgetBox, PlainText, SwitchButton
 
 
 class KeyDisplay(QWidget):
-    X_L = SETTINGS.c1124_X_L
-    Y_R = SETTINGS.c1124_Y_R
-    margin = SETTINGS.c1124_margin
-    padding = SETTINGS.c1124_padding
-    borderRadius = SETTINGS.c1124_borderRadius
+    X_L = SETTINGS.geometry.c1124_X_L
+    Y_R = SETTINGS.geometry.c1124_Y_R
+    margin = SETTINGS.geometry.c1124_margin
+    padding = SETTINGS.geometry.c1124_padding
+    borderRadius = SETTINGS.geometry.c1124_borderRadius
     opacity = SETTINGS.c1124_opacity
-    main_color = SETTINGS.c1124_main_color
+    main_color = SETTINGS.colors.c1124_main_color
     _font = QFont(SETTINGS.font_name, SETTINGS.c1124_font_size)
     _fontMetrics = QFontMetrics(_font)
 
@@ -32,7 +32,7 @@ class KeyDisplay(QWidget):
         self.label = QLabel(text, self)
         self.label.setFont(KeyDisplay._font)
         self.label.setGeometry(0,0,width, height)
-        self.label.setStyleSheet(f"background-color: {self.color};")
+        self.label.setStyleSheet(f"background-color: {self.color}; color: {SETTINGS.colors.c1124_fgcolor};")
         self.label.setAlignment(Qt.AlignCenter)
 
         self.opacity_effect = QGraphicsOpacityEffect()
@@ -40,26 +40,26 @@ class KeyDisplay(QWidget):
         self.opacity_effect.setOpacity(self.opacity)
         
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
-        QTimer.singleShot(SETTINGS.c1124_check_existence_interval, self.checkExistence)
+        QTimer.singleShot(SETTINGS.times.c1124_check_existence_interval, self.checkExistence)
 
         self.animation_level=0
         self.animation=None
         self.animation2=None
 
     def setColor(self, newColor=None):
-        self.color=newColor if newColor is not None else SETTINGS.c1124_sub_color
-        self.label.setStyleSheet(f"background-color: {self.color};")
+        self.color=newColor if newColor is not None else SETTINGS.colors.c1124_sub_color
+        self.label.setStyleSheet(f"background-color: {self.color}; color: {SETTINGS.colors.c1124_fgcolor};")
 
     def delayedFadeOut(self):
         self.animation_level+=1
         x=self.animation_level
-        QTimer.singleShot(SETTINGS.c1124_fadeout_delay, lambda:self.fade_out(x))
+        QTimer.singleShot(SETTINGS.times.c1124_fadeout_delay, lambda:self.fade_out(x))
 
     def fade_out(self, targeted_level:int):
         if targeted_level<self.animation_level:
             return
         self.animation = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.animation.setDuration(SETTINGS.c1124_fadeout_animation_duration)
+        self.animation.setDuration(SETTINGS.times.c1124_fadeout_animation_duration)
         self.animation.setStartValue(self.opacity)
         self.animation.setEndValue(0.0)
         self.animation.setEasingCurve(QEasingCurve.Linear)
@@ -72,7 +72,7 @@ class KeyDisplay(QWidget):
         if self.pos()==end_point:
             return
         self.animation2 = QPropertyAnimation(self, b"pos")
-        self.animation2.setDuration(SETTINGS.c1124_move_duration)
+        self.animation2.setDuration(SETTINGS.times.c1124_move_duration)
         self.animation2.setStartValue(self.pos())
         self.animation2.setEndValue(end_point)
         self.animation2.setEasingCurve(QEasingCurve.InOutQuad)
@@ -102,7 +102,7 @@ class KeyDisplay(QWidget):
             self.close()
             self.deleteLater()
             return
-        QTimer.singleShot(SETTINGS.c1124_check_existence_interval, self.checkExistence)
+        QTimer.singleShot(SETTINGS.times.c1124_check_existence_interval, self.checkExistence)
 
     @classmethod
     def distribute_places(cls, boxes:list[tuple[int,int]]):
@@ -179,7 +179,7 @@ class KeyDisplayerManager(QObject):
             self._newText(text)
 
     def callbackRelease(self, text):
-        time.sleep(SETTINGS.c1124_release_event_delay)
+        time.sleep(SETTINGS.times.c1124_release_event_delay/1000)
         if text in self.texts:
             ind=self.texts.index(text)
             self._countDown(ind)

@@ -10,19 +10,26 @@ class MainWindow(QWidget):
 
         # 停靠在屏幕右上角
         screen_geometry = QApplication.primaryScreen().geometry()
+
+        # 读取设置参数
+        window_width = SETTINGS.geometry.window_width
+        window_height = SETTINGS.geometry.window_height
+        window_padding = SETTINGS.geometry.window_padding
+        shadow_margin = SETTINGS.geometry.shadow_margin
+
         self.position_1 = QPoint(
-            screen_geometry.width() -SETTINGS.window_width -SETTINGS.shadow_margin, # 不加 -SETTINGS.window_padding 故意让窗口右侧没有缝隙 
-            SETTINGS.window_padding -SETTINGS.shadow_margin
+            screen_geometry.width() -window_width -shadow_margin, # 不加 -window_padding 故意让窗口右侧没有缝隙 
+            window_padding -shadow_margin
         )
         self.position_2 = QPoint(
-            screen_geometry.width() -SETTINGS.window_hidden_exposing_width-SETTINGS.shadow_margin, 
-            SETTINGS.window_padding -SETTINGS.shadow_margin
+            screen_geometry.width() -SETTINGS.geometry.window_hidden_exposing_width -shadow_margin, 
+            window_padding -shadow_margin
         )
         self.setGeometry(
             self.position_1.x(), 
             self.position_1.y(), 
-            SETTINGS.window_width+2*SETTINGS.shadow_margin, 
-            SETTINGS.window_height+2*SETTINGS.shadow_margin
+            window_width+2*shadow_margin, 
+            window_height+2*shadow_margin
         )
 
         self.setAcceptDrops(True)
@@ -33,7 +40,7 @@ class MainWindow(QWidget):
 
         # MainWindow -> shadow(_shadowed_window_layout)
         self.shadow = QGraphicsDropShadowEffect(self)
-        self.shadow.setBlurRadius(SETTINGS.shadow_margin*4)
+        self.shadow.setBlurRadius(shadow_margin*4)
         self.shadow.setColor(QColor(0, 0, 0, 160))
         self.shadow.setOffset(0, 0)
         self.setGraphicsEffect(self.shadow)
@@ -41,22 +48,22 @@ class MainWindow(QWidget):
         self._shadowed_window_layout = QVBoxLayout(self)
         self.setLayout(self._shadowed_window_layout)
         self._shadowed_window_layout.setContentsMargins(
-            SETTINGS.shadow_margin, SETTINGS.shadow_margin, 
-            SETTINGS.shadow_margin, SETTINGS.shadow_margin
+            shadow_margin, shadow_margin, 
+            shadow_margin, shadow_margin
         )
 
         # shadow(_shadowed_window_layout) -> shadow_container(shadow_container_layout)
         self.shadow_container = QWidget(self)
         self._shadowed_window_layout.addWidget(self.shadow_container)
         self.shadow_container.setStyleSheet("background-color: transparent;")
-        self.shadow_container.setGeometry(0, 0, SETTINGS.window_width, SETTINGS.window_height)
+        self.shadow_container.setGeometry(0, 0, window_width, window_height)
         self.shadow_container_layout = QVBoxLayout(self.shadow_container)
         self.shadow_container.installEventFilter(self)
 
         self.bgwidget=BackgroundWidget(
             self.shadow_container, 
-            width=SETTINGS.window_width, 
-            height=SETTINGS.window_height
+            width=window_width, 
+            height=window_height
         )
         self.trayWidget=TrayIconWidget(self)
 
@@ -66,7 +73,7 @@ class MainWindow(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setGeometry(0, 0, SETTINGS.window_width, SETTINGS.window_height)
+        scroll.setGeometry(0, 0, window_width, window_height)
         scroll.setStyleSheet("border: none;")
         scroll.verticalScrollBar().setContextMenuPolicy(Qt.NoContextMenu)
         
@@ -90,10 +97,10 @@ class MainWindow(QWidget):
                 background: transparent;
             }
         """ % (
-            SETTINGS.window_scrollbar_width,
-            SETTINGS.window_scrollbar_width // 2,
-            SETTINGS.window_scrollbar_min_height,
-            SETTINGS.window_scrollbar_width // 2
+            SETTINGS.geometry.window_scrollbar_width,
+            SETTINGS.geometry.window_scrollbar_width // 2,
+            SETTINGS.geometry.window_scrollbar_min_height,
+            SETTINGS.geometry.window_scrollbar_width // 2
         ))
         
         # scroll -> content_widget(content_layout)
@@ -113,8 +120,8 @@ class MainWindow(QWidget):
         self.widgets = []
         self.messages = queue.Queue()
         self.timer = QTimer(self)
-        self.timer.singleShot(SETTINGS.window_checkmessage_interval, self.checkMessage)
-        self.timer.singleShot(SETTINGS.window_checkapp_interval, self.checkApp)
+        self.timer.singleShot(SETTINGS.times.window_checkmessage_interval, self.checkMessage)
+        self.timer.singleShot(SETTINGS.times.window_checkapp_interval, self.checkApp)
 
         self.hidden=False # 是否收缩进屏幕右侧
 
@@ -217,11 +224,11 @@ class MainWindow(QWidget):
         
         next_delta_proportion = (
             math.cosh(
-                SETTINGS.window_animation_K*self._mouse_animation_countleft/SETTINGS.window_animation_frames
+                SETTINGS.window_animation_K*self._mouse_animation_countleft/SETTINGS.times.window_animation_frames
             )-1
         )/(
             math.cosh(
-                SETTINGS.window_animation_K*(self._mouse_animation_countleft+1)/SETTINGS.window_animation_frames
+                SETTINGS.window_animation_K*(self._mouse_animation_countleft+1)/SETTINGS.times.window_animation_frames
             )-1
         )
         new_pos = QPointF(target_pos.x() - delta.x() * next_delta_proportion,
@@ -232,13 +239,13 @@ class MainWindow(QWidget):
         self.drag_position = None
         if self.hidden:
             self.hidden = False
-        elif self.pos().x() > self.position_1.x() + SETTINGS.window_width / 6:
+        elif self.pos().x() > self.position_1.x() + SETTINGS.geometry.window_width / 6:
             self.hidden = True
         self._stop_moving_animation()
         self._mouse_animation_timer = QTimer(self)
         self._mouse_animation_timer.timeout.connect(self._mouse_animation_step)
-        self._mouse_animation_countleft = SETTINGS.window_animation_frames
-        self._mouse_animation_timer.start(SETTINGS.window_animation_time_ms//SETTINGS.window_animation_frames)
+        self._mouse_animation_countleft = SETTINGS.times.window_animation_frames
+        self._mouse_animation_timer.start(SETTINGS.times.window_animation_time_ms//SETTINGS.times.window_animation_frames)
         event.accept()
 
     def _settle_hidden_position(self):
@@ -271,12 +278,12 @@ class MainWindow(QWidget):
             math.cosh(
                 SETTINGS.window_animation_K
                 *self._keyboard_moving_countleft
-                /SETTINGS.window_animation_frames
+                /SETTINGS.times.window_animation_frames
             )-1
         )/(math.cosh(
             SETTINGS.window_animation_K
             *(self._keyboard_moving_countleft+1)
-            /SETTINGS.window_animation_frames
+            /SETTINGS.times.window_animation_frames
         )-1)
         new_pos = QPointF(target_pos.x() - delta.x() * next_delta_proportion,
                           target_pos.y() - delta.y() * next_delta_proportion).toPoint()
@@ -295,8 +302,8 @@ class MainWindow(QWidget):
         self._stop_moving_animation()
         self._keyboard_moving_timer = QTimer(self)
         self._keyboard_moving_timer.timeout.connect(self._keyboard_moving_updater)
-        self._keyboard_moving_countleft = SETTINGS.window_animation_frames
-        self._keyboard_moving_timer.start(SETTINGS.window_animation_time_ms//SETTINGS.window_animation_frames)
+        self._keyboard_moving_countleft = SETTINGS.times.window_animation_frames
+        self._keyboard_moving_timer.start(SETTINGS.times.window_animation_time_ms//SETTINGS.times.window_animation_frames)
 
     def activateCallback(self):
         self.refreshHiddenState(False)
@@ -335,7 +342,7 @@ class MainWindow(QWidget):
         if messages:
             self.showPopup('\n'.join(messages), parent=self)
         if self.isVisible():
-            self.timer.singleShot(SETTINGS.window_checkmessage_interval, self.checkMessage)
+            self.timer.singleShot(SETTINGS.times.window_checkmessage_interval, self.checkMessage)
         return
     
     def checkApp(self):
@@ -344,7 +351,7 @@ class MainWindow(QWidget):
         handle = self.windowHandle()
         if handle is None:
             raise RuntimeError("Window handle not found, exiting.")
-        self.timer.singleShot(SETTINGS.window_checkapp_interval, self.checkApp)
+        self.timer.singleShot(SETTINGS.times.window_checkapp_interval, self.checkApp)
     
     def closeEvent(self, a0):
         self._stop_moving_animation()
@@ -368,14 +375,14 @@ class BackgroundWidget(QLabel):
         self.main=parent
         self.setGeometry(0, 0, width, height)
         self.container=QLabel(self)
-        self.container.setStyleSheet(f"background-color: transparent; font-size: {SETTINGS.font_size}pt; margin: {SETTINGS.window_padding}px;")
-        self.setStyleSheet(f"background-color: {SETTINGS.window_default_bgcolor}; border-radius: {SETTINGS.window_border_radius}px; ")
+        self.container.setStyleSheet(f"background-color: transparent; font-size: {SETTINGS.font_size}pt; margin: {SETTINGS.geometry.window_padding}px;")
+        self.setStyleSheet(f"background-color: {SETTINGS.colors.window_bgcolor_default}; border-radius: {SETTINGS.geometry.window_border_radius}px; ")
         self.initialize()
         
 
     def initialize(self):
-        if SETTINGS.window_bgimage_path and os.path.exists(SETTINGS.window_bgimage_path):
-            pixmap = QPixmap(SETTINGS.window_bgimage_path)
+        if SETTINGS.paths.window_bgimage_path and os.path.exists(SETTINGS.paths.window_bgimage_path):
+            pixmap = QPixmap(SETTINGS.paths.window_bgimage_path)
             # 缩放到填满窗口并裁剪多余部分
             picwidth, picheight = pixmap.width(), pixmap.height()
             targetwidth, targetheight = self.main.width(), self.main.height()
@@ -393,7 +400,7 @@ class BackgroundWidget(QLabel):
             painter.setBrush(Qt.white)
             painter.setPen(Qt.NoPen)
             rect = QRectF(0, 0, pixmap.width(), pixmap.height())
-            radius = min(pixmap.width(), pixmap.height()) * SETTINGS.window_border_radius / min(self.main.width(), self.main.height())
+            radius = min(pixmap.width(), pixmap.height()) * SETTINGS.geometry.window_border_radius / min(self.main.width(), self.main.height())
             painter.drawRoundedRect(rect, radius, radius)
             painter.end()
             pixmap.setMask(mask.createMaskFromColor(Qt.transparent))
@@ -407,7 +414,7 @@ class BackgroundWidget(QLabel):
         path, _ = QFileDialog.getOpenFileName(
             None, 
             "Select Background Image", 
-            SETTINGS.clipboard_image_save_dir, 
+            SETTINGS.paths.clipboard_image_save_dir, 
             "Image Files (*.png *.jpg *.bmp);;All Files (*)"
         )
         if not path:
@@ -424,8 +431,8 @@ class BackgroundWidget(QLabel):
             warnings.warn(f"Selected file is not a valid image: {e}")
             return
         im=im.convert('RGBA')
-        im.paste(Image.new('RGBA', im.size, (0,0,0,255)), (0,0), Image.new('L', im.size, SETTINGS.reset_background_image_opacity))
-        save_path = os.path.join(SETTINGS.img_dir, "bg_image.png")
+        im.paste(Image.new('RGBA', im.size, (0,0,0,255)), (0,0), Image.new('L', im.size, SETTINGS.opacity.reset_background_image_opacity))
+        save_path = os.path.join(SETTINGS.paths.img_dir, "bg_image.png")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         im.save(save_path)
         SETTINGS.custom_bgimage_path = None
@@ -438,10 +445,10 @@ class TrayIconWidget:
         self.manager=manager
         self.app = QApplication(sys.argv)
 
-        if not os.path.exists(SETTINGS.icon_path) or not os.path.isfile(SETTINGS.icon_path):
-            raise FileNotFoundError(f"Icon file not found: {SETTINGS.icon_path}")
+        if not os.path.exists(SETTINGS.paths.icon_path) or not os.path.isfile(SETTINGS.paths.icon_path):
+            raise FileNotFoundError(f"Icon file not found: {SETTINGS.paths.icon_path}")
 
-        self.tray_icon = QSystemTrayIcon(QIcon(SETTINGS.icon_path), self.app)
+        self.tray_icon = QSystemTrayIcon(QIcon(SETTINGS.paths.icon_path), self.app)
         self.tray_icon.setToolTip(SETTINGS.window_title)
 
         menu = self.menu = CustomMenu()
@@ -450,8 +457,8 @@ class TrayIconWidget:
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
 
-        self.add_action(SETTINGS.window_title, lambda:os.startfile(SETTINGS.project_dir))
-        self.add_action("Where's My Data?", lambda:os.startfile(SETTINGS.working_dir))
+        self.add_action(SETTINGS.window_title, lambda:os.startfile(SETTINGS.paths.project_dir))
+        self.add_action("Where's My Data?", lambda:os.startfile(SETTINGS.paths.working_dir))
         self.add_action("Set Background", self.manager.bgwidget.reset_background_image)
         self.add_action("Settings", SETTINGS.open_popup_file)
         self.add_action(f"Show/Hide({SETTINGS.window_toggleshowkey})", lambda:self.manager.refreshHiddenState(not self.manager.hidden))

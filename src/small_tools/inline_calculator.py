@@ -75,7 +75,7 @@ class InlineCalculator(code.InteractiveConsole):
         from basic_settings import SETTINGS
         import base64
         try:
-            with open(SETTINGS.namexfilepath, 'r', encoding='utf-8') as f:
+            with open(SETTINGS.paths.namexfilepath, 'r', encoding='utf-8') as f:
                 new_namex = base64.a85decode(f.read().strip().encode()).decode()
                 if new_namex:
                     self.NAMEX = new_namex

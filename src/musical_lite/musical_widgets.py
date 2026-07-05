@@ -5,7 +5,7 @@ cl=PushButton.color_shorthand
 
 def run(master:MainWindow, path:str, *, without_console=True, arguments=()):
     if hasattr(master, 'droprunner'):
-        full_path = os.path.join(SETTINGS.src_dir, 'musical_lite', path)
+        full_path = os.path.join(SETTINGS.paths.src_dir, 'musical_lite', path)
         master.droprunner.run(full_path, arguments=arguments, without_console=without_console)
     else:
         master.messages.put_nowait("DropRunner not found in master window.")

@@ -13,24 +13,19 @@ class CustomMenu(QMenu):
         # 设置按钮样式
         self.setStyleSheet(f"""
             QMenu {{
-                background-color: rgba{SETTINGS.contextmenu_bgcolor_tuple+(SETTINGS.contextmenu_bgalpha,)};
-                color: rgba{SETTINGS.contextmenu_fgcolor_tuple+(SETTINGS.contextmenu_fgalpha,)};
-                border-radius: {SETTINGS.contextmenu_border_radius}px;
-                border: {SETTINGS.contextmenu_border_width}px solid rgba{SETTINGS.contextmenu_fgcolor_tuple+(SETTINGS.contextmenu_fgalpha,)};
+                background-color: rgba{SETTINGS.colors.contextmenu_bgcolor_tuple+(SETTINGS.opacity.contextmenu_bgalpha,)};
+                color: rgba{SETTINGS.colors.contextmenu_fgcolor_tuple+(SETTINGS.opacity.contextmenu_fgalpha,)};
+                border-radius: {SETTINGS.geometry.contextmenu_border_radius}px;
+                border: {SETTINGS.geometry.contextmenu_border_width}px solid rgba{SETTINGS.colors.contextmenu_fgcolor_tuple+(SETTINGS.opacity.contextmenu_fgalpha,)};
             }}
             QMenu::item {{
                 padding: 8px 24px;
                 background-color: transparent;
-                border-radius: {SETTINGS.contextmenu_border_radius}px;
+                border-radius: {SETTINGS.geometry.contextmenu_border_radius}px;
             }}
             QMenu::item:selected {{
-                background-color: rgba{SETTINGS.contextmenu_hover_bgcolor_tuple+(SETTINGS.contextmenu_bgalpha,)};
-                border-radius: {SETTINGS.contextmenu_border_radius}px;
+                background-color: rgba{SETTINGS.colors.contextmenu_hover_bgcolor_tuple+(SETTINGS.opacity.contextmenu_bgalpha,)};
+                border-radius: {SETTINGS.geometry.contextmenu_border_radius}px;
             }}
-            /*
-            QMenu::item[special="true"]:selected {{
-                background-color: rgba{SETTINGS.contextmenu_hover_bgcolor_special_tuple+(SETTINGS.contextmenu_bgalpha,)};
-            }}
-            */
         """)
 

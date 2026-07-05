@@ -13,13 +13,13 @@ class DropRunner(WidgetBox):
         self.label = QLabel("Drop Pythons and Cs Here", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size, QFont.Bold))
-        self.label.setStyleSheet(f"color: {SETTINGS.text_color};")
+        self.label.setStyleSheet(f"color: {SETTINGS.colors.text_color};")
 
         self.debug_mode_sublayout = QHBoxLayout()
         self.switch = SwitchButton(self, onchange=self.setDebugMode)
         self.switchText = QLabel("Run mode", self)
         self.switchText.setFont(QFont(SETTINGS.font_name, SETTINGS.font_size))
-        self.switchText.setStyleSheet(f"color: {SETTINGS.text_color};")
+        self.switchText.setStyleSheet(f"color: {SETTINGS.colors.text_color};")
         self.debug_mode_sublayout.addWidget(self.switch)
         self.debug_mode_sublayout.addWidget(self.switchText)
 
@@ -219,7 +219,7 @@ class DropRunner(WidgetBox):
             os.chdir(run_dir)
             etc = ' '.join(f'"{arg}"' for arg in arguments)
             subprocess.Popen(f'cmd /k ""{self.python_path}" "{script_path}" {etc}"', creationflags=subprocess.CREATE_NEW_CONSOLE)
-            os.chdir(SETTINGS.working_dir)
+            os.chdir(SETTINGS.paths.working_dir)
         else:
             app_path = self.pythonw_path if without_console else self.python_path
             def callbackfunc():
@@ -227,16 +227,16 @@ class DropRunner(WidgetBox):
                     os.chdir(run_dir)
                     etc = ' '.join(f'"{arg}"' for arg in arguments)
                     proc=subprocess.Popen(f'"{app_path}" "{script_path}" {etc}', creationflags=subprocess.CREATE_NEW_CONSOLE)
-                    os.chdir(SETTINGS.working_dir)
+                    os.chdir(SETTINGS.paths.working_dir)
                     ret=proc.wait()
                 except KeyboardInterrupt:
                     ret = -1073741510
                 except Exception as e:
-                    with open(SETTINGS.error_log_file, 'a+', encoding='utf-8') as f:
+                    with open(SETTINGS.paths.error_log_file, 'a+', encoding='utf-8') as f:
                         f.write(f"Error running script {script_path}:\n{traceback.format_exc()}\n")
                     ret = -1
                 finally:
-                    os.chdir(SETTINGS.working_dir)
+                    os.chdir(SETTINGS.paths.working_dir)
                 if ret>=0x80000000:
                     ret-=0x1_00000000
                 message = f'Program "{script_path}" exits with return value {ret}(0x{ret&0xffffffff:08X})'
@@ -257,18 +257,18 @@ class DropRunner(WidgetBox):
         if self.debug_mode:
             os.chdir(os.path.dirname(source_path))
             subprocess.Popen(f'cmd /k {compile_command} && ("{exe_path}" & echo Program exits with return value %errorlevel%)', creationflags=subprocess.CREATE_NEW_CONSOLE)
-            os.chdir(SETTINGS.working_dir)
+            os.chdir(SETTINGS.paths.working_dir)
         else:
             def callback_compile():
                 try:
                     os.chdir(os.path.dirname(source_path))
                     proc=subprocess.Popen(compile_command, shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
-                    os.chdir(SETTINGS.working_dir)
+                    os.chdir(SETTINGS.paths.working_dir)
                     ret=proc.wait()
                 except KeyboardInterrupt:
                     ret = -1073741510
                 finally:
-                    os.chdir(SETTINGS.working_dir)
+                    os.chdir(SETTINGS.paths.working_dir)
                 if ret>=0x80000000:
                     ret-=0x1_00000000
                 if ret==0:
@@ -280,12 +280,12 @@ class DropRunner(WidgetBox):
                 try:
                     os.chdir(os.path.dirname(source_path))
                     proc=subprocess.Popen([exe_path], creationflags=subprocess.CREATE_NEW_CONSOLE)
-                    os.chdir(SETTINGS.working_dir)
+                    os.chdir(SETTINGS.paths.working_dir)
                     ret=proc.wait()
                 except KeyboardInterrupt:
                     ret = -1073741510
                 finally:
-                    os.chdir(SETTINGS.working_dir)
+                    os.chdir(SETTINGS.paths.working_dir)
                 if ret>=0x80000000:
                     ret-=0x1_00000000
                 message = f'Program "{exe_path}" exits with return value {ret}(0x{ret&0xffffffff:08X})'
@@ -309,11 +309,11 @@ class DropRunner(WidgetBox):
                 time.sleep(0.05)
             if not popup.user_response:
                 return
-        os.chdir(SETTINGS.project_dir)
+        os.chdir(SETTINGS.paths.project_dir)
         subprocess.Popen(sys.orig_argv[:]+['--forceKillAllExistingInstances'], creationflags=subprocess.CREATE_NEW_CONSOLE)
         # this process will be killed by the newly started process
         time.sleep(0.01)
-        os.chdir(SETTINGS.working_dir)
+        os.chdir(SETTINGS.paths.working_dir)
 
     def close(self):
         self.master.trayWidget.remove_action("Restart")

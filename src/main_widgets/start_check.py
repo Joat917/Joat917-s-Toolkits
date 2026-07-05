@@ -8,7 +8,7 @@ class CheckStarted:
         :param lock_file_name: 可选，指定PID锁文件名，默认为app.pid
         :param force_kill: 可选，是否强制终止已有实例，默认会检查是否传入--forceKillAllExistingInstances参数
         """
-        self.pid_file = os.path.join(SETTINGS.working_dir, lock_file_name)
+        self.pid_file = os.path.join(SETTINGS.paths.working_dir, lock_file_name)
         if force_kill is None:
             self.force_kill = '--forceKillAllExistingInstances' in sys.argv
         else:

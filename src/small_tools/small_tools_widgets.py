@@ -5,14 +5,14 @@ cl=PushButton.color_shorthand
 
 def run_tool(master:MainWindow, script_path:str, *args):
     if hasattr(master, 'droprunner'):
-        full_path = os.path.join(SETTINGS.src_dir, 'small_tools', script_path)
-        master.droprunner.run(full_path, run_dir=SETTINGS.src_dir, arguments=args)
+        full_path = os.path.join(SETTINGS.paths.src_dir, 'small_tools', script_path)
+        master.droprunner.run(full_path, run_dir=SETTINGS.paths.src_dir, arguments=args)
     else:
         master.messages.put_nowait("DropRunner not found in master window.")
 
 def run_script(master:MainWindow, script_path:str, *args):
     if hasattr(master, 'droprunner'):
-        full_path = os.path.join(SETTINGS.src_dir, script_path)
+        full_path = os.path.join(SETTINGS.paths.src_dir, script_path)
         master.droprunner.run(full_path, without_console=True, arguments=args)
     else:
         master.messages.put_nowait("DropRunner not found in master window.")
@@ -106,8 +106,8 @@ class OtherToolsWidget(WidgetBox):
             .addLine(self.quinifier_button, self.minifier_button, self.mojibake_button)
         )
 
-        self.tempfile = os.path.join(SETTINGS.working_dir, 'other_tools_temp.txt')
-        self.tempimagefile = os.path.join(SETTINGS.working_dir, 'other_tools_temp_image.png')
+        self.tempfile = os.path.join(SETTINGS.paths.working_dir, 'other_tools_temp.txt')
+        self.tempimagefile = os.path.join(SETTINGS.paths.working_dir, 'other_tools_temp_image.png')
 
     def run_word_counter(self):
         fp = get_clipboard_file_paths()
@@ -200,7 +200,7 @@ class ChaoticPendulumWidget(WidgetBox):
             return run_script(self.master, 'small_tools/chaotic_pendulum.py')
     
     def pendulum_started(self):
-        lock_file = os.path.join(SETTINGS.working_dir, 'chaotic_pendulum.pid')
+        lock_file = os.path.join(SETTINGS.paths.working_dir, 'chaotic_pendulum.pid')
         if not os.path.exists(lock_file):
             return False
         try:
@@ -216,7 +216,7 @@ class ChaoticPendulumWidget(WidgetBox):
                 self.toggle_button.mousePressEvent(None)  # 自动关闭显示，将自动调用disable_display
     
     def disable_display(self):
-        lock_file = os.path.join(SETTINGS.working_dir, 'chaotic_pendulum.pid')
+        lock_file = os.path.join(SETTINGS.paths.working_dir, 'chaotic_pendulum.pid')
         if not os.path.exists(lock_file):
             return
         try:
@@ -265,10 +265,10 @@ class WindowMoverWidget(WidgetBox):
         self.timer.timeout.connect(self.check_mover)
         self.timer.singleShot(3000, lambda:self.timer.start(1000))
         if not self.mover_started():
-            return run_script(self.master, 'small_tools/show_window_info.py', '--lock-file', os.path.join(SETTINGS.working_dir, 'window_mover.pid'))
+            return run_script(self.master, 'small_tools/show_window_info.py', '--lock-file', os.path.join(SETTINGS.paths.working_dir, 'window_mover.pid'))
     
     def mover_started(self):
-        lock_file = os.path.join(SETTINGS.working_dir, 'window_mover.pid')
+        lock_file = os.path.join(SETTINGS.paths.working_dir, 'window_mover.pid')
         if not os.path.exists(lock_file):
             return False
         try:
@@ -284,7 +284,7 @@ class WindowMoverWidget(WidgetBox):
                 self.toggle_button.mousePressEvent(None)
     
     def disable_display(self):
-        lock_file = os.path.join(SETTINGS.working_dir, 'window_mover.pid')
+        lock_file = os.path.join(SETTINGS.paths.working_dir, 'window_mover.pid')
         if not os.path.exists(lock_file):
             return
         try:
@@ -319,7 +319,7 @@ class KillersWidget(WidgetBox):
         self.addLine(self.restart_explorer_button, self.suiside_button)
 
     def restart_explorer(self):
-        batch_file = os.path.join(SETTINGS.working_dir, 'restart_explorer.bat')
+        batch_file = os.path.join(SETTINGS.paths.working_dir, 'restart_explorer.bat')
         with open(batch_file, 'w', encoding='utf-8') as f:
             f.write(
                 "chcp 65001\n"
@@ -333,7 +333,7 @@ class KillersWidget(WidgetBox):
         os.startfile(batch_file)
 
     def kill_python(self):
-        batch_file = os.path.join(SETTINGS.working_dir, 'kill_python.bat')
+        batch_file = os.path.join(SETTINGS.paths.working_dir, 'kill_python.bat')
         with open(batch_file, 'w', encoding='utf-8') as f:
             f.write(
                 "chcp 65001\n"
