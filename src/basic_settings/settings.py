@@ -137,7 +137,7 @@ class Settings:
         self.c1124_fadeout_animation_duration = 2000 #ms
         self.c1124_move_duration = 300 #ms
 
-        self.droprunner_history_max = 3
+        self.droprunner_history_max = 5
 
         self.clipboard_refresh_interval = 500 # ms
         self.clipboardreader_text_color = "#000000"

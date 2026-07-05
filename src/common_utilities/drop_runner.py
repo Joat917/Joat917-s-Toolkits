@@ -54,44 +54,37 @@ class DropRunner(WidgetBox):
         _additions_to_last_dropped = []
 
         for file_path in file_paths:
-            if not os.path.exists(file_path):
-                self.push_message("File not exists: " + file_path)
+            try:
+                file_path = self.shortcut_decoder(file_path)
+            except Exception as e:
+                self.push_message(f"Error decoding shortcut {file_path}: {e}")
                 continue
-            if not os.path.isfile(file_path):
-                self.push_message("Not a file: " + file_path)
+
+            # try to run file
+            try:
+                self.run_from_filename(file_path)
+            except Exception as e:
+                self.push_message(f"Error running file {file_path}: {e}")
                 continue
-            while file_path.startswith('"') and file_path.endswith('"'):
-                file_path = file_path[1:-1]
-            _loop_counter = 0
-            while file_path.endswith('.lnk'):
-                shell = win32com.client.Dispatch("WScript.Shell")
-                shortcut = shell.CreateShortCut(file_path)
-                file_path = shortcut.Targetpath
-                _loop_counter += 1
-                if _loop_counter > 1000:
-                    break
             
-            if file_path.endswith('.py'):
-                self.run(file_path, without_console=False)
-                _additions_to_last_dropped.append(file_path)
-            elif file_path.endswith('.pyw'):
-                self.run(file_path, without_console=True)
-                _additions_to_last_dropped.append(file_path)
-            elif file_path.endswith('.c'):
-                self.run_Ccode(file_path)
-                _additions_to_last_dropped.append(file_path)
-            elif file_path.endswith('.cpp'):
-                self.run_Ccode(file_path, cpp=True)
-                _additions_to_last_dropped.append(file_path)
+            # Files to be added to last dropped list (may repeat with existing ones)
+            _additions_to_last_dropped.append(file_path)
+        # Update the last dropped files list (may repeat)
+        _new_last_dropped_files = _additions_to_last_dropped + self.last_dropped_files
+        # drop duplicates (modify in place)
+        _seen = set()
+        i = 0
+        while i < len(_new_last_dropped_files):
+            file_path = _new_last_dropped_files[i]
+            if file_path in _seen:
+                _new_last_dropped_files.pop(i)
             else:
-                self.push_message("Not a Python or C script: " + file_path)
-            
-        _additions_to_last_dropped=_additions_to_last_dropped[:SETTINGS.droprunner_history_max]
-        for file_path in _additions_to_last_dropped:
-            if file_path in self.last_dropped_files:
-                self.last_dropped_files.remove(file_path)
-        self.last_dropped_files=_additions_to_last_dropped+self.last_dropped_files
-        self.last_dropped_files=self.last_dropped_files[:SETTINGS.droprunner_history_max]
+                _seen.add(file_path)
+                i += 1
+        # truncate to max history length
+        _new_last_dropped_files = _new_last_dropped_files[:SETTINGS.droprunner_history_max]
+        # refresh
+        self.last_dropped_files = _new_last_dropped_files
         self._refresh_last_dropped_display()
             
         event.acceptProposedAction()
@@ -108,23 +101,7 @@ class DropRunner(WidgetBox):
         
         for file_path in self.last_dropped_files:
             def _callback(*, file_path=file_path):
-                if not os.path.exists(file_path):
-                    self.push_message("File not exists: " + file_path)
-                    return
-                if not os.path.isfile(file_path):
-                    self.push_message("Not a file: " + file_path)
-                    return
-                if file_path.endswith('.py'):
-                    self.run(file_path, without_console=False)
-                elif file_path.endswith('.pyw'):
-                    self.run(file_path, without_console=True)
-                elif file_path.endswith('.c'):
-                    self.run_Ccode(file_path)
-                elif file_path.endswith('.cpp'):
-                    self.run_Ccode(file_path, cpp=True)
-                else:
-                    self.push_message("Not a Python or C script: " + file_path)
-                return
+                self.run_from_filename(file_path)
             
             text = self._text_truncator_in_display(
                 text=os.path.basename(file_path), 
@@ -171,6 +148,56 @@ class DropRunner(WidgetBox):
                 return truncated_text
 
         return '...'  # 如果所有尝试都失败，返回一个简单的省略号
+    
+
+    def run_from_filename(self, filename: str):
+        """
+        给定一个脚本文件名，根据其后缀名选择运行方式。
+        本方法不允许输入快捷方式文件。
+        如果运行失败，直接报错，不推送消息。
+        返回None
+        """
+        if not os.path.exists(filename):
+            raise ValueError("File not exists: " + filename)
+        if not os.path.isfile(filename):
+            raise ValueError("Not a file: " + filename)
+        if filename.endswith('.py'):
+            self.run(filename, without_console=False)
+        elif filename.endswith('.pyw'):
+            self.run(filename, without_console=True)
+        elif filename.endswith('.c'):
+            self.run_Ccode(filename)
+        elif filename.endswith('.cpp'):
+            self.run_Ccode(filename, cpp=True)
+        else:
+            raise ValueError("Not a Python or C script: " + filename)
+        return
+    
+    @staticmethod
+    def shortcut_decoder(shortcut_path: str) -> str:
+        """
+        解码一个Windows快捷方式文件，返回其指向的目标文件路径。
+        如果快捷方式指向的文件仍然是快捷方式，继续解码，直到得到一个非快捷方式文件路径为止。
+        如果不是快捷方式，返回原路径。
+        本方法会在文件不存在时报错。
+        """
+        file_path = shortcut_path
+        while file_path.startswith('"') and file_path.endswith('"'):
+            file_path = file_path[1:-1]
+        if not os.path.exists(file_path):
+            raise ValueError("File not exists: " + shortcut_path)
+        if not os.path.isfile(file_path):
+            raise ValueError("Not a file: " + shortcut_path)
+        
+        _loop_counter = 0
+        while file_path.endswith('.lnk'):
+            shell = win32com.client.Dispatch("WScript.Shell")
+            shortcut = shell.CreateShortCut(file_path)
+            file_path = shortcut.Targetpath
+            _loop_counter += 1
+            if _loop_counter > 1000:
+                raise ValueError("Too many levels of shortcut indirection: " + shortcut_path)
+        return file_path
 
 
     def run(self, script_path: str, without_console: bool=False, run_dir=None, arguments:tuple[str] = ()):
