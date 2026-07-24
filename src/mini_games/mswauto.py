@@ -2,43 +2,69 @@
 自动化扫雷，高通量进行扫雷游戏并记录结果，以进行理论分析。
 """
 
-from mswlib import MineField, MineFieldAdvisor
+from mswlib2 import MineGame, MineDetector
 
 def run_minesweeper(rows, cols, mines, seed, first_click):
-    mf = MineField(rows, cols, mines, seed=seed, first_click_pos=first_click)
-    advisor = MineFieldAdvisor(mf, seed=seed)
+    game = MineGame(rows, cols, mines, seed=seed)
+    if first_click is not None:
+        game.reveal_cell(first_click)
+    field = game.minefield
+    detector = MineDetector(field)
+    _reset_loop_left = 5
     while True:
-        if mf.is_safe():
+        if field.is_victory():
             return True
-        if mf.is_dead():
+        if not field.is_safe():
             return False
-        advisor.analyze()
+
+        try:
+            detector.refresh()
+        except Exception as e:
+            print(f"Error in detector.refresh(): {e}")
+            detector = MineDetector(field)
+            detector.reset()
+            detector.refresh()
+
+        to_dig = []
+        to_flag = []
+        for pos in field.all_indices():
+            if (detector.known_mines[pos] or detector.probabilities[pos] == 1.0) and not field.is_flag(pos):
+                to_flag.append(pos)
+            if detector.known_empty[pos] or detector.probabilities[pos] == 0.0 and not field.is_exposed(pos):
+                to_dig.append(pos)
+            
 
         changed = False
-        for pos in mf.all_places():
-            if advisor.confident_suggestions[pos]==1:
-                changed |= mf.dig(pos)
-            elif advisor.confident_suggestions[pos]==2:
-                changed |= mf.flag(pos)
+        for pos in to_flag:
+            if not field.is_flag(pos):
+                changed |= game.mark_cell(pos)!=0
+        for pos in to_dig:
+            if not field.is_exposed(pos):
+                changed |= game.reveal_cell(pos)!=0
         
         if changed:
             continue
         
-        if (advisor.probability_suggestions>=0).any():
-            minimum_possibility = advisor.probability_suggestions[advisor.probability_suggestions>=0].min()
-            maximum_possibility = advisor.probability_suggestions[advisor.probability_suggestions>=0].max()
-            if minimum_possibility<=1-maximum_possibility:
-                positions = [pos for pos in mf.all_places() if advisor.probability_suggestions[pos]==minimum_possibility]
-                pos = tuple(mf.rng.choice(positions))
-                mf.dig(pos)
-            else:
-                positions = [pos for pos in mf.all_places() if advisor.probability_suggestions[pos]==maximum_possibility]
-                pos = tuple(mf.rng.choice(positions))
-                mf.flag(pos)
-        else:
-            existing_positions = [pos for pos in mf.all_places() if not mf.is_exposed(pos)]
-            pos = tuple(mf.rng.choice(existing_positions))
-            mf.dig(pos)
+        all_next_possible_step = []
+        for cell in field.all_indices():
+            if field.is_covered(cell) and not detector.known_mines[cell]:
+                all_next_possible_step.append(cell)
+
+        if len(all_next_possible_step)>0:
+            from random import shuffle
+            shuffle(all_next_possible_step)
+            all_next_possible_step.sort(key=lambda pos: detector.probabilities[pos])
+            for cell in all_next_possible_step:
+                changed += abs(game.reveal_cell(cell))
+                if changed>0:
+                    break
+
+        if not changed:
+            _reset_loop_left -= 1
+            if _reset_loop_left <= 0:
+                return False
+            detector.reset()
+            detector.refresh()
 
 
 def run_simulations(difficulty, start_position, num_simulations, n_workers=1, quiet=False):
@@ -46,7 +72,8 @@ def run_simulations(difficulty, start_position, num_simulations, n_workers=1, qu
     difficulties = {
         'beginner': (9, 9, 10),
         'intermediate': (16, 16, 40),
-        'expert': (16, 30, 99)
+        'expert': (16, 30, 99), 
+        'extreme': (64, 36, 999)
     }
     positions = {
         'center': lambda r, c: (r//2, c//2),
@@ -88,7 +115,7 @@ def run_simulations(difficulty, start_position, num_simulations, n_workers=1, qu
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Automated Minesweeper Simulator")
-    parser.add_argument('--difficulty', type=str, required=True, help='Difficulty level: beginner, intermediate, expert')
+    parser.add_argument('--difficulty', type=str, required=True, help='Difficulty level: beginner, intermediate, expert, extreme')
     parser.add_argument('--start-position', type=str, default='center', help='First click position: center, corner, margin-top, margin-left, quarters')
     parser.add_argument('--simulations', type=int, default=1000, help='Number of simulations to run')
     parser.add_argument('--workers', type=int, default=1, help='Number of parallel workers')
