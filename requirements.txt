@@ -4,3 +4,4 @@ PyQt5
 matplotlib
 pynput
 pyperclip
+prompt_toolkit
